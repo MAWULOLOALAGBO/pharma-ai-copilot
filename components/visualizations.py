@@ -227,6 +227,7 @@ class AutoVizGenerator:
             showlegend=False,
             height=500 if len(cat_counts) > 8 else 350,
             margin=dict(l=200)  # Plus de marge pour les labels longs
+            coloraxis_showscale=False,  # Supprime la légende color
         )
         
         return fig
