@@ -508,10 +508,21 @@ class AutoVizGenerator:
     
     def _create_product_price_view(self) -> go.Figure:
         """
-        Crée une vue combinée produit-prix (scatter plot amélioré).
+        Crée une vue combinée produit-prix.
+        Priorité à la colonne 'designation' si elle existe.
         """
-        price_col = self.price_cols[0]
-        product_col = self.product_cols[0]
+        price_col = self.price_cols[0] if self.price_cols else None
+        
+        # Priorité : designation > product_cols > première colonne string
+        if 'designation' in self.df.columns:
+            product_col = 'designation'
+        elif self.product_cols:
+            product_col = self.product_cols[0]
+        else:
+            # Fallback sur la première colonne string non-brand
+            string_cols = [c for c in self.df.columns 
+                          if self.schema.get(c, {}).get('detected_type') not in ['brand', 'code', 'price', 'quantity', 'date']]
+            product_col = string_cols[0] if string_cols else self.df.columns[0]
         
         # Préparation des données
         plot_df = self.df.copy()
