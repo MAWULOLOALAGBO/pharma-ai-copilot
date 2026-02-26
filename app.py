@@ -501,7 +501,7 @@ def main():
     
     # Footer
     st.divider()
-    st.caption("© 2025 Pharma-AI Copilot v2.0 | Développé avec ❤️ en France")
+    st.caption("© 2025 Pharma-AI Copilot v3.0 | Développé avec ❤️ en France")
 
 
 # =============================================================================
