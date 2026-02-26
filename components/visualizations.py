@@ -312,7 +312,7 @@ class AutoVizGenerator:
     
     def _create_stock_indicators(self) -> go.Figure:
         """
-        Crée des indicateurs de stock (jauges).
+        Crée des indicateurs de stock avec meilleur contraste.
         """
         quantity_col = self.quantity_cols[0]
         
@@ -328,53 +328,79 @@ class AutoVizGenerator:
             )
             return fig
         
-        # Création de jauges pour les stats clés
+        # Calcul des stats
+        total = int(quantities.sum())
+        avg = round(quantities.mean(), 1)
+        max_val = int(quantities.max())
+        min_val = int(quantities.min())
+        
+        # Création de 4 cartes KPI au lieu de jauges (meilleur contraste)
         fig = make_subplots(
             rows=2, cols=2,
-            specs=[[{'type': 'indicator'}, {'type': 'indicator'}],
-                   [{'type': 'indicator'}, {'type': 'indicator'}]],
-            subplot_titles=('Stock Total', 'Moyenne par Produit', 'Produit Max', 'Produit Min')
+            subplot_titles=(
+                f'<b style="color:#1e40af;">Stock Total</b>',
+                f'<b style="color:#10b981;">Moyenne par Produit</b>',
+                f'<b style="color:#f59e0b;">Produit Max</b>',
+                f'<b style="color:#ef4444;">Produit Min</b>'
+            ),
+            vertical_spacing=0.3,
+            horizontal_spacing=0.2
         )
         
-        # Stock total
+        # Stock Total (Bleu)
         fig.add_trace(
             go.Indicator(
                 mode="number",
-                value=int(quantities.sum()),
-                number={'suffix': " unités", 'font': {'size': 40, 'color': '#1e40af'}},
+                value=total,
+                number={
+                    'suffix': " unités", 
+                    'font': {'size': 50, 'color': '#1e40af', 'family': 'Arial Black'},
+                    'valueformat': ',d'
+                },
                 domain={'row': 0, 'column': 0}
             ),
             row=1, col=1
         )
         
-        # Moyenne
+        # Moyenne (Vert)
         fig.add_trace(
             go.Indicator(
                 mode="number",
-                value=round(quantities.mean(), 1),
-                number={'suffix': " unités", 'font': {'size': 40, 'color': '#10b981'}},
+                value=avg,
+                number={
+                    'suffix': " unités", 
+                    'font': {'size': 50, 'color': '#10b981', 'family': 'Arial Black'}
+                },
                 domain={'row': 0, 'column': 1}
             ),
             row=1, col=2
         )
         
-        # Max
+        # Max (Orange)
         fig.add_trace(
             go.Indicator(
                 mode="number",
-                value=int(quantities.max()),
-                number={'suffix': " unités", 'font': {'size': 40, 'color': '#f59e0b'}},
+                value=max_val,
+                number={
+                    'suffix': " unités", 
+                    'font': {'size': 50, 'color': '#f59e0b', 'family': 'Arial Black'},
+                    'valueformat': ',d'
+                },
                 domain={'row': 1, 'column': 0}
             ),
             row=2, col=1
         )
         
-        # Min
+        # Min (Rouge)
         fig.add_trace(
             go.Indicator(
                 mode="number",
-                value=int(quantities.min()),
-                number={'suffix': " unités", 'font': {'size': 40, 'color': '#ef4444'}},
+                value=min_val,
+                number={
+                    'suffix': " unités", 
+                    'font': {'size': 50, 'color': '#ef4444', 'family': 'Arial Black'},
+                    'valueformat': ',d'
+                },
                 domain={'row': 1, 'column': 1}
             ),
             row=2, col=2
@@ -382,58 +408,98 @@ class AutoVizGenerator:
         
         fig.update_layout(
             title_text="📦 Indicateurs de Stock",
-            title_font_size=16,
+            title_font_size=20,
             title_font_color='#1e3a8a',
-            paper_bgcolor='rgba(0,0,0,0)',
-            height=400
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+            height=400,
+            margin=dict(t=100, b=50)
+        )
+        
+        # Mise à jour des annotations (titres des subplots)
+        fig.update_annotations(
+            font_size=16,
+            font_color='#334155'
         )
         
         return fig
     
     def _create_product_price_view(self) -> go.Figure:
         """
-        Crée une vue combinée produit-prix (scatter plot).
+        Crée une vue combinée produit-prix (scatter plot amélioré).
         """
         price_col = self.price_cols[0]
         product_col = self.product_cols[0]
         
         # Préparation des données
         plot_df = self.df.copy()
-        plot_df['_price_num'] = pd.to_numeric(plot_df[price_col], errors='coerce')
+        plot_df['_price_num'] = self._clean_price_series(price_col)
         
         # Filtrage des valeurs valides
         plot_df = plot_df.dropna(subset=['_price_num'])
+        
+        if len(plot_df) == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                text="Aucune donnée prix/produit valide",
+                xref="paper", yref="paper",
+                showarrow=False, font=dict(size=14, color="red")
+            )
+            return fig
+        
+        # Tronquer les noms de produits pour lisibilité
+        plot_df['product_short'] = plot_df[product_col].astype(str).str[:25] + "..."
         
         # Ajout couleur par marque si disponible
         color_col = self.brand_cols[0] if self.brand_cols else None
         
         fig = px.scatter(
             plot_df,
-            x=product_col,
+            x='product_short',
             y='_price_num',
             color=color_col if color_col else None,
             title=f"💎 Vue Produits vs Prix",
             labels={
-                product_col: 'Produit',
+                'product_short': 'Produit',
                 '_price_num': 'Prix (€)'
             },
-            hover_data=[price_col] if price_col != '_price_num' else [],
+            hover_data=[product_col, price_col] if price_col != '_price_num' else [product_col],
             size='_price_num',
-            size_max=30
+            size_max=25,
+            color_discrete_sequence=px.colors.qualitative.Bold if not color_col else None
         )
         
-        fig.update_traces(marker=dict(opacity=0.7, line=dict(width=1, color='DarkSlateGrey')))
+        # Amélioration de la lisibilité
+        fig.update_traces(
+            marker=dict(
+                opacity=0.8, 
+                line=dict(width=2, color='DarkSlateGrey')
+            ),
+            textposition='top center'
+        )
+        
         fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            title_font_size=16,
+            plot_bgcolor='#f8fafc',
+            paper_bgcolor='white',
+            title_font_size=18,
             title_font_color='#1e3a8a',
             xaxis_tickangle=-45,
-            height=500
+            xaxis_title_font=dict(size=14, color='#334155'),
+            yaxis_title_font=dict(size=14, color='#334155'),
+            xaxis_tickfont=dict(size=10, color='#475569'),
+            yaxis_tickfont=dict(size=12, color='#475569'),
+            showlegend=True if color_col else False,
+            legend_title_text='Marque' if color_col else None,
+            height=500,
+            margin=dict(t=80, b=150)  # Plus de marge pour les labels
         )
         
+        # Ajout de grille pour lisibilité
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#e2e8f0')
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#e2e8f0')
+        
         # Nettoyage
-        plot_df.drop(columns=['_price_num'], inplace=True, errors='ignore')
+        plot_df.drop(columns=['_price_num', 'product_short'], inplace=True, errors='ignore')
         
         return fig
     
