@@ -527,12 +527,24 @@ def render_analysis_screen(config):
             col_exp1, col_exp2 = st.columns(2)
             
             with col_exp1:
-                st.info("**Export Excel Pro** (bientôt disponible)\n\nRapport complet avec onglets, formules et mise en forme")
-                st.button("🔄 Générer Excel", disabled=True, help="Disponible dans la version 4.0")
+                st.markdown("""
+                    <div style='background-color: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6;'>
+                        <h4 style='color: #1e40af; margin-top: 0;'>📑 Export Excel Pro</h4>
+                        <p style='color: #334155;'>Rapport complet avec onglets, formules et mise en forme conditionnelle</p>
+                        <p style='color: #64748b; font-size: 0.9em;'><i>Disponible dans la version 4.0</i></p>
+                    </div>
+                """, unsafe_allow_html=True)
+                st.button("🔄 Générer Excel", disabled=True, help="Bientôt disponible", key="btn_excel")
             
             with col_exp2:
-                st.info("**Export PDF** (bientôt disponible)\n\nRapport PDF avec graphiques et insights")
-                st.button("🔄 Générer PDF", disabled=True, help="Disponible dans une future version")
+                st.markdown("""
+                    <div style='background-color: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6;'>
+                        <h4 style='color: #1e40af; margin-top: 0;'>📄 Export PDF</h4>
+                        <p style='color: #334155;'>Rapport PDF avec graphiques et insights</p>
+                        <p style='color: #64748b; font-size: 0.9em;'><i>Bientôt disponible</i></p>
+                    </div>
+                """, unsafe_allow_html=True)
+                st.button("🔄 Générer PDF", disabled=True, help="Bientôt disponible", key="btn_pdf")
         
         else:
             # Fallback si visualisations non disponibles
