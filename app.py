@@ -216,6 +216,16 @@ def configure_app():
         footer {
             color: #03224c !important;
         }
+
+        /* Footer et caption visibles */
+        [data-testid="stCaption"] {
+            color: #64748b !important;
+        }
+        
+        [data-testid="stCaption"] > div {
+            color: #64748b !important;
+            font-size: 0.9rem !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -584,7 +594,7 @@ def main():
     
     # Footer
     st.divider()
-    st.caption("© 2025 Pharma-AI Copilot v3.0 | Développé avec ❤️ en France")
+    st.caption("© 2025 Pharma-AI Copilot v3.0.0 | Développé avec ❤️ en France")
 
 
 # =============================================================================
