@@ -360,10 +360,23 @@ class AutoVizGenerator:
     
     def _create_top_expensive(self) -> go.Figure:
         """
-        Crée un graphique des produits les plus chers (une seule barre par produit).
+        Crée un graphique des produits les plus chers.
         """
         price_col = self.price_cols[0]
-        product_col = self.product_cols[0] if self.product_cols else None
+        
+        # ============================================================
+        # FORCER L'UTILISATION DE 'designation' SI ELLE EXISTE
+        # ============================================================
+        if 'designation' in self.df.columns:
+            product_col = 'designation'
+        elif self.product_cols:
+            # Filtrer pour exclure les colonnes pharmacie
+            valid_product_cols = [c for c in self.product_cols 
+                                if 'pharmacie' not in c.lower() 
+                                and 'fournisseur' not in c.lower()]
+            product_col = valid_product_cols[0] if valid_product_cols else self.product_cols[0]
+        else:
+            product_col = self.df.columns[0]
         
         # Nettoyage des prix
         self.df['_price_num'] = self._clean_price_series(price_col)
@@ -380,7 +393,7 @@ class AutoVizGenerator:
             )
             return fig
         
-        # Suppression des doublons de produits (garde le plus cher si doublon)
+        # Suppression des doublons de produits
         if product_col:
             valid_df = valid_df.sort_values('_price_num', ascending=False)
             valid_df = valid_df.drop_duplicates(subset=[product_col], keep='first')
@@ -389,14 +402,11 @@ class AutoVizGenerator:
         top_expensive = valid_df.nlargest(10, '_price_num')
         
         # Nom des produits (tronqué si trop long)
-        if product_col:
-            labels = top_expensive[product_col].astype(str).apply(
-                lambda x: x[:35] + "..." if len(x) > 35 else x
-            )
-        else:
-            labels = top_expensive.index.astype(str)
+        labels = top_expensive[product_col].astype(str).apply(
+            lambda x: x[:40] + "..." if len(x) > 40 else x
+        )
         
-        # Création du graphique avec UNE SEULE barre par produit
+        # Création du graphique
         fig = go.Figure()
         
         fig.add_trace(go.Bar(
@@ -436,13 +446,13 @@ class AutoVizGenerator:
                 showgrid=False,
                 autorange="reversed"
             ),
-            showlegend=False,  # Supprime la légende color
-            coloraxis_showscale=False,  # Supprime l'échelle de couleur
+            showlegend=False,
+            coloraxis_showscale=False,
             height=450,
-            margin=dict(l=200, r=50, t=80, b=50)
+            margin=dict(l=250, r=50, t=80, b=50)
         )
         
-        # Nettoyage colonne temporaire
+        # Nettoyage
         self.df.drop(columns=['_price_num'], inplace=True, errors='ignore')
         
         return fig
