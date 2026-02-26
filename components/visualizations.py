@@ -177,36 +177,39 @@ class AutoVizGenerator:
     def _create_category_chart(self) -> go.Figure:
         """
         Crée un graphique de répartition par catégorie avec bon contraste.
+        Supprime la légende color inutile.
         """
         category_col = self.category_cols[0]
         
         cat_counts = self.df[category_col].value_counts().head(15)
         
-        # Palette de couleurs distinctes
+        # Palette de couleurs distinctes sans dégradé
         n_colors = len(cat_counts)
-        colors = px.colors.sample_colorscale(
-            'Viridis', 
-            [n/(n_colors-1) for n in range(n_colors)]
-        ) if n_colors > 1 else ['#3b82f6']
+        if n_colors <= 10:
+            colors = px.colors.qualitative.Bold[:n_colors]
+        else:
+            colors = px.colors.qualitative.Bold + px.colors.qualitative.Vivid[:n_colors-10]
         
-        fig = px.bar(
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
             y=cat_counts.index[::-1],
             x=cat_counts.values[::-1],
             orientation='h',
-            title=f"📂 Répartition par {category_col}",
-            labels={'y': category_col, 'x': 'Nombre de produits'},
-            color=cat_counts.values[::-1],
-            color_continuous_scale='Viridis',
-            text=cat_counts.values[::-1]
-        )
-        
-        fig.update_traces(
+            marker=dict(
+                color=colors,
+                line=dict(color='#1e293b', width=1)
+            ),
+            text=cat_counts.values[::-1],
             textposition='outside',
             textfont=dict(size=12, color='#1e293b'),
-            marker=dict(line=dict(color='#1e293b', width=1))
-        )
+            hovertemplate='<b>%{y}</b><br>Nombre: %{x}<extra></extra>'
+        ))
         
         fig.update_layout(
+            title=f"📂 Répartition par {category_col}",
+            xaxis_title='Nombre de produits',
+            yaxis_title=category_col,
             plot_bgcolor='white',
             paper_bgcolor='white',
             font=dict(size=12, color='#1e293b'),
@@ -220,14 +223,13 @@ class AutoVizGenerator:
             ),
             yaxis=dict(
                 title_font=dict(size=14, color='#334155'),
-                tickfont=dict(size=12, color='#1e293b'),  # Texte des catégories en foncé !
+                tickfont=dict(size=12, color='#1e293b'),
                 showgrid=False,
                 autorange="reversed"
             ),
-            showlegend=False,
+            showlegend=False,  # Supprime toute légende
             height=500 if len(cat_counts) > 8 else 350,
-            margin=dict(l=200)  # Plus de marge pour les labels longs
-            coloraxis_showscale=False,  # Supprime la légende color
+            margin=dict(l=150, r=50, t=80, b=50)
         )
         
         return fig
@@ -608,9 +610,15 @@ class AutoVizGenerator:
         # Nombre total de produits
         kpis['total_produits'] = len(self.df)
         
-        # Nombre de marques uniques
+        # Nombre de marques uniques (exclure les IDs)
         if self.brand_cols:
-            kpis['nb_marques'] = self.df[self.brand_cols[0]].nunique()
+            # Vérifier que ce n'est pas un ID
+            brand_col = self.brand_cols[0]
+            if 'id' not in brand_col.lower() and 'pharmacie' not in brand_col.lower():
+                kpis['nb_marques'] = self.df[brand_col].nunique()
+            elif len(self.brand_cols) > 1:
+                # Prendre la suivante si disponible
+                kpis['nb_marques'] = self.df[self.brand_cols[1]].nunique()
         
         # Nombre de catégories
         if self.category_cols:
