@@ -213,11 +213,7 @@ def configure_app():
         }
         
         /* Footer */
-        footer, .stCaption {
-            color: #64748b !important;
-        }
-        
-        .stCaption > div {
+        footer {
             color: #64748b !important;
         }
         </style>
