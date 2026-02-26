@@ -85,6 +85,15 @@ except ImportError as e:
     st.error(f"Erreur d'import des visualisations: {e}")
     VIZ_AVAILABLE = False
 
+
+# Import du générateur Excel (NOUVEAUTÉ V4.0)
+try:
+    from utils.excel_exporter import generate_excel_report
+    EXCEL_AVAILABLE = True
+except ImportError as e:
+    st.error(f"Erreur d'import de l'export Excel: {e}")
+    EXCEL_AVAILABLE = False
+
 # =============================================================================
 # SECTION 2 : CONFIGURATION GLOBALE DE L'APPLICATION
 # =============================================================================
