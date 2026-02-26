@@ -262,6 +262,7 @@ class ColumnDetector:
         if 'designation' in clean_name:
             scores['product'] = 1.0
             scores['brand'] = 0.0  # Éviter confusion avec brand
+            return scores
         
         # Fonction helper pour calculer le score d'une catégorie
         def calc_score(keywords, weight=1.0):
