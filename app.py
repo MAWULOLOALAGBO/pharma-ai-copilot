@@ -214,7 +214,7 @@ def configure_app():
         
         /* Footer */
         footer {
-            color: #64748b !important;
+            color: #03224c !important;
         }
         </style>
     """, unsafe_allow_html=True)
