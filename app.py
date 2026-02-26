@@ -590,7 +590,11 @@ def main():
     
     # Footer
     st.divider()
-    st.caption("© 2025 Pharma-AI Copilot v3.0.0 | Développé avec ❤️ en France")
+    st.markdown("""
+        <div style='text-align: center; color: #64748b; padding: 20px; font-size: 0.9rem;'>
+            © 2025 Pharma-AI Copilot v3.0.0 | Développé avec ❤️ en France
+        </div>
+    """, unsafe_allow_html=True)
 
 
 # =============================================================================
