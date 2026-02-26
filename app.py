@@ -272,6 +272,7 @@ def render_header():
                 📁 Uploadez n'importe quel fichier (Excel, CSV)  
                 🤖 L'IA analyse automatiquement la structure  
                 📊 Visualisations et insights auto-générés
+                📥 Export Excel Pro multi-onglets
             """)
         
         st.divider()
@@ -317,7 +318,7 @@ def render_sidebar():
         # Section: Informations
         st.divider()
         st.info("""
-            **Version 3.0.0** - Visualisations Auto
+            **Version 4.0.0** - Visualisations Auto
             
             Développé par Mawulolo K. P. ALAGBO
             Science des Données - IUT de Vannes
@@ -632,7 +633,7 @@ def main():
     st.divider()
     st.markdown("""
         <div style='text-align: center; color: #64748b; padding: 20px; font-size: 0.9rem;'>
-            © 2025 Pharma-AI Copilot v3.0.0 | Développé avec ❤️ en France
+            © 2025 Pharma-AI Copilot v4.0.0 | Développé avec ❤️ en France
         </div>
     """, unsafe_allow_html=True)
 
