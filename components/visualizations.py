@@ -171,7 +171,7 @@ class AutoVizGenerator:
         
         return fig
     
-        def _clean_price_series(self, price_col: str) -> pd.Series:
+    def _clean_price_series(self, price_col: str) -> pd.Series:
         """
         Nettoie une série de prix (gère €, espaces, virgules, etc.).
         
