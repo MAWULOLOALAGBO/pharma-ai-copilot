@@ -253,7 +253,7 @@ class AutoVizGenerator:
         
         return fig
     
-        def _create_top_expensive(self) -> go.Figure:
+    def _create_top_expensive(self) -> go.Figure:
         """
         Crée un graphique des produits les plus chers.
         """
