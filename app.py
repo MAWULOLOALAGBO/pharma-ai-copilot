@@ -217,11 +217,6 @@ def configure_app():
             color: #03224c !important;
         }
         
-        
-        [data-testid="stCaption"] > div {
-            color: #64748b !important;
-            font-size: 0.9rem !important;
-        }
         </style>
     """, unsafe_allow_html=True)
 
