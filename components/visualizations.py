@@ -283,22 +283,30 @@ class AutoVizGenerator:
             color_discrete_sequence=['#3b82f6']
         )
         
-        # Ajout de statistiques
+        # Ajout de statistiques avec gestion d'erreur
         mean_price = prices.mean()
         median_price = prices.median()
         
-        # Positionnement intelligent pour éviter la superposition
-        y_max = max(fig.data[0].y) if fig.data else 2
+        # Calcul de la hauteur max pour positionnement des annotations
+        try:
+            if fig.data and len(fig.data) > 0 and hasattr(fig.data[0], 'y'):
+                y_values = fig.data[0].y
+                y_max = max(y_values) if len(y_values) > 0 else 2
+            else:
+                y_max = 2
+        except:
+            y_max = 2
         
+        # Positionnement intelligent pour éviter la superposition
         fig.add_vline(
             x=mean_price, 
             line_dash="dash", 
             line_color="#ef4444",
             line_width=2,
             annotation_text=f"Moy: {mean_price:,.0f}€",
-            annotation_position="top right",  # Changé de "top" à "top right"
+            annotation_position="top right",
             annotation_font=dict(size=11, color="#ef4444"),
-            annotation_y=y_max * 0.95  # Position Y explicite
+            annotation_yanchor="top"
         )
         
         fig.add_vline(
@@ -307,9 +315,9 @@ class AutoVizGenerator:
             line_color="#10b981",
             line_width=2,
             annotation_text=f"Méd: {median_price:,.0f}€",
-            annotation_position="top left",  # Changé à gauche
+            annotation_position="top left",
             annotation_font=dict(size=11, color="#10b981"),
-            annotation_y=y_max * 0.85  # Plus bas pour éviter superposition
+            annotation_yanchor="bottom"
         )
         
         fig.update_traces(
