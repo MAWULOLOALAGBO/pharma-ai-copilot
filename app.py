@@ -415,14 +415,20 @@ def render_analysis_screen(config):
     # ============================================================
     
     try:
-        # Lecture selon le format
+            # Lecture selon le format
         if file_extension == 'CSV':
-            # Essai différents encodages pour maximiser la compatibilité
+            # Détection automatique du séparateur
             try:
-                df = pd.read_csv(file, encoding='utf-8')
-            except UnicodeDecodeError:
-                file.seek(0)  # Reset le pointeur
-                df = pd.read_csv(file, encoding='latin-1')
+                # Essai avec virgule
+                df = pd.read_csv(file, encoding='utf-8', sep=None, engine='python')
+            except:
+                file.seek(0)
+                try:
+                    # Essai avec point-virgule (format européen)
+                    df = pd.read_csv(file, encoding='utf-8', sep=';')
+                except:
+                    file.seek(0)
+                    df = pd.read_csv(file, encoding='latin-1', sep=None, engine='python')
         else:  # Excel
             df = pd.read_excel(file)
         
