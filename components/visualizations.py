@@ -171,14 +171,40 @@ class AutoVizGenerator:
         
         return fig
     
+        def _clean_price_series(self, price_col: str) -> pd.Series:
+        """
+        Nettoie une série de prix (gère €, espaces, virgules, etc.).
+        
+        Args:
+            price_col (str): Nom de la colonne prix
+            
+        Returns:
+            pd.Series: Série de prix numériques nettoyés
+        """
+        # Copie des données
+        prices = self.df[price_col].astype(str)
+        
+        # Nettoyage : suppression des symboles €, espaces, remplacement virgule par point
+        prices_clean = prices.str.replace('€', '', regex=False)
+        prices_clean = prices_clean.str.replace('EUR', '', regex=False, case=False)
+        prices_clean = prices_clean.str.replace(' ', '', regex=False)
+        prices_clean = prices_clean.str.replace(',', '.', regex=False)
+        prices_clean = prices_clean.str.replace('\xa0', '', regex=False)  # Espace insécable
+        prices_clean = prices_clean.str.strip()
+        
+        # Conversion en numérique
+        prices_numeric = pd.to_numeric(prices_clean, errors='coerce')
+        
+        return prices_numeric
+    
     def _create_price_distribution(self) -> go.Figure:
         """
         Crée un histogramme de distribution des prix.
         """
         price_col = self.price_cols[0]
         
-        # Conversion en numérique si ce n'est pas déjà fait
-        prices = pd.to_numeric(self.df[price_col], errors='coerce').dropna()
+        # Utilisation de la fonction de nettoyage
+        prices = self._clean_price_series(price_col).dropna()
         
         if len(prices) == 0:
             # Fallback si conversion échoue
@@ -227,18 +253,30 @@ class AutoVizGenerator:
         
         return fig
     
-    def _create_top_expensive(self) -> go.Figure:
+        def _create_top_expensive(self) -> go.Figure:
         """
         Crée un graphique des produits les plus chers.
         """
         price_col = self.price_cols[0]
         product_col = self.product_cols[0] if self.product_cols else None
         
-        # Conversion prix en numérique
-        self.df['_price_num'] = pd.to_numeric(self.df[price_col], errors='coerce')
+        # Nettoyage des prix
+        self.df['_price_num'] = self._clean_price_series(price_col)
+        
+        # Filtrage des valeurs valides
+        valid_df = self.df.dropna(subset=['_price_num'])
+        
+        if len(valid_df) == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                text="Aucun prix valide trouvé",
+                xref="paper", yref="paper",
+                showarrow=False, font=dict(size=14, color="red")
+            )
+            return fig
         
         # Top 10 plus chers
-        top_expensive = self.df.nlargest(10, '_price_num')
+        top_expensive = valid_df.nlargest(10, '_price_num')
         
         # Nom des produits (tronqué si trop long)
         if product_col:
@@ -401,8 +439,7 @@ class AutoVizGenerator:
     
     def _create_kpi_cards(self) -> Dict[str, Any]:
         """
-        Crée des cartes KPI récapitulatives (pas un graphique mais des métriques).
-        Retourne un dict pour affichage Streamlit.
+        Crée des cartes KPI récapitulatives.
         """
         kpis = {}
         
@@ -417,11 +454,12 @@ class AutoVizGenerator:
         if self.category_cols:
             kpis['nb_categories'] = self.df[self.category_cols[0]].nunique()
         
-        # Prix moyen
+        # Prix moyen et total (avec nettoyage)
         if self.price_cols:
-            prices = pd.to_numeric(self.df[self.price_cols[0]], errors='coerce')
-            kpis['prix_moyen'] = prices.mean()
-            kpis['prix_total'] = prices.sum()
+            prices_clean = self._clean_price_series(self.price_cols[0]).dropna()
+            if len(prices_clean) > 0:
+                kpis['prix_moyen'] = prices_clean.mean()
+                kpis['prix_total'] = prices_clean.sum()
         
         # Quantité totale
         if self.quantity_cols:
