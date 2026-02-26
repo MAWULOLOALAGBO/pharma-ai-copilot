@@ -258,7 +258,10 @@ class ColumnDetector:
             scores['quantity'] = 0.0  # Éviter confusion
             return scores  # On retourne immédiatement, c'est un ID
         
-        # RESTE DE LA FONCTION (déjà existant)
+        # Priorité forte pour "designation" (nom de produit en pharma)
+        if 'designation' in clean_name:
+            scores['product'] = 1.0
+            scores['brand'] = 0.0  # Éviter confusion avec brand
         
         # Fonction helper pour calculer le score d'une catégorie
         def calc_score(keywords, weight=1.0):
@@ -280,11 +283,6 @@ class ColumnDetector:
         scores['date'] = calc_score(self.date_keywords)
         scores['category'] = calc_score(self.category_keywords)
         scores['brand'] = calc_score(self.brand_keywords)
-
-            # Priorité forte pour "designation" (nom de produit en pharma)
-        if 'designation' in clean_name:
-            scores['product'] = 1.0
-            scores['brand'] = 0.0  # Éviter confusion avec brand
         
         return scores
     
