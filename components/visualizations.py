@@ -360,7 +360,7 @@ class AutoVizGenerator:
     
     def _create_top_expensive(self) -> go.Figure:
         """
-        Crée un graphique des produits les plus chers.
+        Crée un graphique des produits les plus chers (une seule barre par produit).
         """
         price_col = self.price_cols[0]
         product_col = self.product_cols[0] if self.product_cols else None
@@ -369,7 +369,7 @@ class AutoVizGenerator:
         self.df['_price_num'] = self._clean_price_series(price_col)
         
         # Filtrage des valeurs valides
-        valid_df = self.df.dropna(subset=['_price_num'])
+        valid_df = self.df.dropna(subset=['_price_num']).copy()
         
         if len(valid_df) == 0:
             fig = go.Figure()
@@ -380,34 +380,66 @@ class AutoVizGenerator:
             )
             return fig
         
+        # Suppression des doublons de produits (garde le plus cher si doublon)
+        if product_col:
+            valid_df = valid_df.sort_values('_price_num', ascending=False)
+            valid_df = valid_df.drop_duplicates(subset=[product_col], keep='first')
+        
         # Top 10 plus chers
         top_expensive = valid_df.nlargest(10, '_price_num')
         
         # Nom des produits (tronqué si trop long)
         if product_col:
-            labels = top_expensive[product_col].astype(str).str[:30] + "..."
+            labels = top_expensive[product_col].astype(str).apply(
+                lambda x: x[:35] + "..." if len(x) > 35 else x
+            )
         else:
             labels = top_expensive.index.astype(str)
         
-        fig = px.bar(
+        # Création du graphique avec UNE SEULE barre par produit
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
             x=top_expensive['_price_num'],
             y=labels,
             orientation='h',
-            title=f"🏆 Top 10 des produits les plus chers",
-            labels={'x': 'Prix (€)', 'y': 'Produit'},
-            color=top_expensive['_price_num'],
-            color_continuous_scale='Reds',
-            text=top_expensive['_price_num'].apply(lambda x: f"{x:,.2f}€")
-        )
+            marker=dict(
+                color=top_expensive['_price_num'],
+                colorscale='Reds',
+                line=dict(color='#7f1d1d', width=1.5)
+            ),
+            text=top_expensive['_price_num'].apply(lambda x: f"{x:,.2f}€"),
+            textposition='inside',
+            textfont=dict(size=11, color='white'),
+            hovertemplate='<b>%{y}</b><br>Prix: %{x:,.2f}€<extra></extra>'
+        ))
         
-        fig.update_traces(textposition='outside')
         fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            yaxis=dict(autorange="reversed"),
-            title_font_size=16,
+            title="🏆 Top 10 des produits les plus chers",
+            xaxis_title='Prix (€)',
+            yaxis_title='Produit',
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(size=12, color='#1e293b'),
+            title_font_size=18,
             title_font_color='#1e3a8a',
-            height=500
+            xaxis=dict(
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=12, color='#1e293b'),
+                showgrid=True,
+                gridcolor='#e2e8f0',
+                tickformat=',.2f'
+            ),
+            yaxis=dict(
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=11, color='#1e293b'),
+                showgrid=False,
+                autorange="reversed"
+            ),
+            showlegend=False,  # Supprime la légende color
+            coloraxis_showscale=False,  # Supprime l'échelle de couleur
+            height=450,
+            margin=dict(l=200, r=50, t=80, b=50)
         )
         
         # Nettoyage colonne temporaire
