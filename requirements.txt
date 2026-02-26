@@ -1,1 +1,27 @@
+# =============================================================================
+# PHARMA-AI COPILOT - DÉPENDANCES PYTHON
+# =============================================================================
+# 
+# Installation: pip install -r requirements.txt
+# Mise à jour: pip install --upgrade -r requirements.txt
+# =============================================================================
 
+# Framework web principal - Interface utilisateur
+streamlit==1.31.0
+
+# Manipulation et analyse de données
+pandas==2.2.0
+numpy==1.26.3
+
+# Visualisations interactives
+plotly==5.18.0
+
+# Export Excel avancé (mise en forme, formules)
+openpyxl==3.1.2
+xlsxwriter==3.1.9
+
+# Lecture/écriture Excel (alternative à openpyxl pour certains cas)
+xlrd==2.0.1
+
+# Utilitaires
+python-dateutil==2.8.2
