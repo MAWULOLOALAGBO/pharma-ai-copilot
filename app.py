@@ -92,10 +92,8 @@ except ImportError as e:
 def configure_app():
     """
     Configure les paramètres globaux de l'application Streamlit.
-    Cette fonction doit être appelée en premier dans le script.
     """
     
-    # Configuration de la page
     st.set_page_config(
         page_title="Pharma-AI Copilot",
         page_icon="💊",
@@ -103,47 +101,77 @@ def configure_app():
         initial_sidebar_state="expanded"
     )
     
-    # Injection de CSS personnalisé pour le style "Glassmorphism"
+    # CSS amélioré pour meilleur contraste
     st.markdown("""
         <style>
-        /* Style global de l'application */
+        /* Style global */
         .main {
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
+            color: #1e293b;
         }
         
-        /* Effet glassmorphism pour les cartes */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Style des titres */
+        /* Titres avec bon contraste */
         h1 {
-            color: #1e40af;
+            color: #1e40af !important;
             font-weight: 700;
         }
         
         h2, h3 {
-            color: #1e3a8a;
+            color: #1e3a8a !important;
             font-weight: 600;
         }
         
-        /* Badges de confiance */
-        .confidence-high {
-            color: #10B981;
-            font-weight: bold;
+        /* Métriques plus lisibles */
+        [data-testid="stMetricValue"] {
+            font-size: 2rem !important;
+            font-weight: 700 !important;
+            color: #1e40af !important;
         }
-        .confidence-medium {
-            color: #F59E0B;
-            font-weight: bold;
+        
+        [data-testid="stMetricLabel"] {
+            font-size: 1rem !important;
+            color: #475569 !important;
         }
-        .confidence-low {
-            color: #EF4444;
-            font-weight: bold;
+        
+        /* Tableaux avec meilleur contraste */
+        .stDataFrame {
+            background-color: white;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        /* Onglets visibles */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            background-color: #e2e8f0;
+            border-radius: 8px 8px 0 0;
+            padding: 10px 20px;
+            color: #475569;
+            font-weight: 500;
+        }
+        
+        .stTabs [aria-selected="true"] {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+        
+        /* Alertes et infos */
+        .stAlert {
+            border-radius: 10px;
+        }
+        
+        /* Sidebar */
+        .css-1d391kg {
+            background-color: #1e293b;
+        }
+        
+        /* Boutons disabled plus visibles */
+        button[disabled] {
+            opacity: 0.6;
+            background-color: #94a3b8 !important;
         }
         </style>
     """, unsafe_allow_html=True)
