@@ -7,14 +7,14 @@
 # =============================================================================
 
 # Framework web principal - Interface utilisateur
-streamlit==1.31.0
+streamlit==1.41.1
 
 # Manipulation et analyse de données
-pandas==2.2.0
+pandas==2.2.3
 numpy==1.26.3
 
 # Visualisations interactives
-plotly==5.18.0
+plotly==5.24.1
 
 # Export Excel avancé (mise en forme, formules)
 openpyxl==3.1.2
