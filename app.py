@@ -101,7 +101,7 @@ def configure_app():
         initial_sidebar_state="expanded"
     )
     
-    # CSS amélioré pour meilleur contraste
+    # CSS amélioré pour meilleur contraste et visibilité
     st.markdown("""
         <style>
         /* Style global */
@@ -123,7 +123,7 @@ def configure_app():
         
         /* Métriques plus lisibles */
         [data-testid="stMetricValue"] {
-            font-size: 2rem !important;
+            font-size: 2.2rem !important;
             font-weight: 700 !important;
             color: #1e40af !important;
         }
@@ -131,47 +131,90 @@ def configure_app():
         [data-testid="stMetricLabel"] {
             font-size: 1rem !important;
             color: #475569 !important;
+            font-weight: 500 !important;
         }
         
-        /* Tableaux avec meilleur contraste */
-        .stDataFrame {
-            background-color: white;
-            border-radius: 10px;
-            padding: 10px;
-        }
-        
-        /* Onglets visibles */
+        /* Onglets avec meilleur contraste */
         .stTabs [data-baseweb="tab-list"] {
             gap: 8px;
+            background-color: transparent;
         }
         
         .stTabs [data-baseweb="tab"] {
-            background-color: #e2e8f0;
-            border-radius: 8px 8px 0 0;
-            padding: 10px 20px;
-            color: #475569;
-            font-weight: 500;
+            background-color: #e2e8f0 !important;
+            border-radius: 8px 8px 0 0 !important;
+            padding: 12px 24px !important;
+            color: #475569 !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            border: none !important;
+        }
+        
+        .stTabs [data-baseweb="tab"]:hover {
+            background-color: #cbd5e1 !important;
+            color: #1e40af !important;
         }
         
         .stTabs [aria-selected="true"] {
             background-color: #3b82f6 !important;
             color: white !important;
+            border-bottom: 3px solid #1e40af !important;
         }
         
-        /* Alertes et infos */
+        /* Conteneurs d'export */
         .stAlert {
-            border-radius: 10px;
+            background-color: #dbeafe !important;
+            border: 1px solid #3b82f6 !important;
+            border-radius: 10px !important;
+        }
+        
+        .stAlert > div {
+            color: #1e40af !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Boutons */
+        .stButton > button {
+            background-color: #3b82f6 !important;
+            color: white !important;
+            font-weight: 600 !important;
+            border-radius: 8px !important;
+            padding: 10px 24px !important;
+        }
+        
+        .stButton > button:hover {
+            background-color: #1e40af !important;
+        }
+        
+        button[disabled] {
+            background-color: #94a3b8 !important;
+            opacity: 0.7 !important;
+        }
+        
+        /* DataFrames */
+        .stDataFrame {
+            background-color: white !important;
+            border-radius: 10px !important;
+            border: 1px solid #e2e8f0 !important;
         }
         
         /* Sidebar */
-        .css-1d391kg {
-            background-color: #1e293b;
+        .css-1d391kg, [data-testid="stSidebar"] {
+            background-color: #1e293b !important;
         }
         
-        /* Boutons disabled plus visibles */
-        button[disabled] {
-            opacity: 0.6;
-            background-color: #94a3b8 !important;
+        /* Texte dans la sidebar */
+        [data-testid="stSidebar"] .stMarkdown {
+            color: #e2e8f0 !important;
+        }
+        
+        [data-testid="stSidebar"] label {
+            color: #cbd5e1 !important;
+        }
+        
+        /* Footer */
+        footer {
+            color: #64748b !important;
         }
         </style>
     """, unsafe_allow_html=True)
