@@ -348,8 +348,32 @@ class ColumnDetector:
     
     def _get_standardized_name(self, detected_type: str, original_name: str) -> str:
         """
-        Retourne un nom standardisé selon le type détecté.
+        Retourne un nom standardisé OU garde l'original s'il est déjà clair.
         """
+        # Si le nom original est déjà explicite, on le garde
+        explicit_names = {
+            'stock_actuel': 'Stock Actuel',
+            'stock_min': 'Stock Minimum',
+            'stock_max': 'Stock Maximum',
+            'stock_securite': 'Stock Sécurité',
+            'quantite': 'Quantité',
+            'qte': 'Quantité',
+            'prix_achat': "Prix d'Achat",
+            'prix_vente': 'Prix de Vente',
+            'prix_unitaire': 'Prix Unitaire',
+            'code_cip': 'Code CIP',
+            'code_ean': 'Code EAN',
+            'id_produit': 'ID Produit',
+            'id_pharmacie': 'ID Pharmacie',
+        }
+        
+        original_lower = original_name.lower().replace('_', '').replace(' ', '')
+        
+        for key, value in explicit_names.items():
+            if key.replace('_', '') in original_lower or original_lower in key.replace('_', ''):
+                return value
+        
+        # Sinon mapping générique
         mapping = {
             'product': 'Produit',
             'code': 'Code',
