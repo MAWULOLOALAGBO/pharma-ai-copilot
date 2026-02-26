@@ -521,8 +521,10 @@ class AutoVizGenerator:
             )
             return fig
         
-        # Tronquer les noms de produits pour lisibilité
-        plot_df['product_short'] = plot_df[product_col].astype(str).str[:25] + "..."
+        # Tronquer seulement si vraiment nécessaire (plus de 40 caractères)
+        plot_df['product_short'] = plot_df[product_col].astype(str).apply(
+            lambda x: x[:40] + "..." if len(x) > 40 else x
+        )
         
         # Ajout couleur par marque si disponible
         color_col = self.brand_cols[0] if self.brand_cols else None
