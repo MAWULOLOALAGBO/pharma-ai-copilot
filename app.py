@@ -216,11 +216,7 @@ def configure_app():
         footer {
             color: #03224c !important;
         }
-
-        /* Footer et caption visibles */
-        [data-testid="stCaption"] {
-            color: #64748b !important;
-        }
+        
         
         [data-testid="stCaption"] > div {
             color: #64748b !important;
