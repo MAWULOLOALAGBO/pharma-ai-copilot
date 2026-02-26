@@ -287,14 +287,18 @@ class AutoVizGenerator:
         mean_price = prices.mean()
         median_price = prices.median()
         
+        # Positionnement intelligent pour éviter la superposition
+        y_max = max(fig.data[0].y) if fig.data else 2
+        
         fig.add_vline(
             x=mean_price, 
             line_dash="dash", 
             line_color="#ef4444",
             line_width=2,
-            annotation_text=f"Moy: {mean_price:.0f}€",
-            annotation_position="top",
-            annotation_font=dict(size=12, color="#ef4444")
+            annotation_text=f"Moy: {mean_price:,.0f}€",
+            annotation_position="top right",  # Changé de "top" à "top right"
+            annotation_font=dict(size=11, color="#ef4444"),
+            annotation_y=y_max * 0.95  # Position Y explicite
         )
         
         fig.add_vline(
@@ -302,9 +306,10 @@ class AutoVizGenerator:
             line_dash="dash", 
             line_color="#10b981",
             line_width=2,
-            annotation_text=f"Méd: {median_price:.0f}€",
-            annotation_position="top",
-            annotation_font=dict(size=12, color="#10b981")
+            annotation_text=f"Méd: {median_price:,.0f}€",
+            annotation_position="top left",  # Changé à gauche
+            annotation_font=dict(size=11, color="#10b981"),
+            annotation_y=y_max * 0.85  # Plus bas pour éviter superposition
         )
         
         fig.update_traces(
