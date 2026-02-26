@@ -73,6 +73,18 @@ except ImportError as e:
     st.error(f"Erreur d'import du détecteur: {e}")
     DETECTOR_AVAILABLE = False
 
+
+# =============================================================================
+# IMPORTS DES COMPOSANTS DE VISUALISATION
+# =============================================================================
+
+try:
+    from components.visualizations import render_visualizations, suggest_insights
+    VIZ_AVAILABLE = True
+except ImportError as e:
+    st.error(f"Erreur d'import des visualisations: {e}")
+    VIZ_AVAILABLE = False
+
 # =============================================================================
 # SECTION 2 : CONFIGURATION GLOBALE DE L'APPLICATION
 # =============================================================================
@@ -178,7 +190,7 @@ def render_header():
                 
                 📁 Uploadez n'importe quel fichier (Excel, CSV)  
                 🤖 L'IA analyse automatiquement la structure  
-                📊 Visualisations et insights intelligents (bientôt)
+                📊 Visualisations et insights auto-générés
             """)
         
         st.divider()
@@ -224,7 +236,7 @@ def render_sidebar():
         # Section: Informations
         st.divider()
         st.info("""
-            **Version 2.0.0** - Détection intelligente
+            **Version 3.0.0** - Visualisations Auto
             
             Développé par Mawulolo K. P. ALAGBO
             Science des Données - IUT de Vannes
@@ -420,34 +432,44 @@ def render_analysis_screen(config):
         st.dataframe(df.head(), use_container_width=True)
         
         # ============================================================
-        # ÉTAPE 5 : STATISTIQUES RAPIDES (SI APPLICABLE)
+        # ÉTAPE 4 : STATISTIQUES ET VISUALISATIONS (NOUVEAUTÉ V3.0)
         # ============================================================
         
-        st.divider()
-        st.subheader("📈 Statistiques Rapides")
+        if VIZ_AVAILABLE:
+            
+            # Génération et affichage des visualisations automatiques
+            render_visualizations(df, schema)
+            
+            # Insights textuels générés automatiquement
+            st.divider()
+            st.subheader("💡 Insights Intelligents")
+            
+            insights = suggest_insights(df, schema)
+            
+            for insight in insights:
+                st.markdown(f"- {insight}")
+            
+            # Section export (préparation pour v4.0)
+            st.divider()
+            st.subheader("📤 Export des Résultats")
+            
+            col_exp1, col_exp2 = st.columns(2)
+            
+            with col_exp1:
+                st.info("**Export Excel Pro** (bientôt disponible)\n\nRapport complet avec onglets, formules et mise en forme")
+                st.button("🔄 Générer Excel", disabled=True, help="Disponible dans la version 4.0")
+            
+            with col_exp2:
+                st.info("**Export PDF** (bientôt disponible)\n\nRapport PDF avec graphiques et insights")
+                st.button("🔄 Générer PDF", disabled=True, help="Disponible dans une future version")
         
-        # Identifier les colonnes quantité/prix pour stats
-        quantity_cols = [col for col, meta in schema.items() if meta['detected_type'] == 'quantity']
-        price_cols = [col for col, meta in schema.items() if meta['detected_type'] == 'price']
-        
-        stats_cols = st.columns(min(len(quantity_cols) + len(price_cols), 4))
-        
-        col_idx = 0
-        for col in quantity_cols:
-            with stats_cols[col_idx]:
-                total = df[col].sum()
-                st.metric(f"Total {col}", f"{total:,.0f}")
-            col_idx += 1
-        
-        for col in price_cols:
-            with stats_cols[col_idx]:
-                total = df[col].sum()
-                avg = df[col].mean()
-                st.metric(f"Total {col}", f"{total:,.2f} €", f"Moy: {avg:.2f}")
-            col_idx += 1
-        
-        if col_idx == 0:
-            st.info("Aucune colonne quantité ou prix détectée pour les statistiques.")
+        else:
+            # Fallback si visualisations non disponibles
+            st.divider()
+            st.subheader("📋 Aperçu des données")
+            st.dataframe(df.head(10), use_container_width=True)
+            
+            st.info("Module de visualisation en cours de chargement...")
     
     else:
         # Détecteur non disponible - affichage basique
