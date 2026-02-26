@@ -245,23 +245,33 @@ class ColumnDetector:
     def _score_column_name(self, name: str) -> Dict[str, float]:
         """
         Attribue un score à chaque catégorie basé sur le nom de colonne.
-        Retourne un dict {categorie: score}
         """
         scores = {}
+        
+        # Nettoyage du nom
+        clean_name = name.lower().strip().replace('_', '').replace(' ', '')
+        
+        # DÉTECTION PRIORITAIRE : IDs (à ajouter ici, au début)
+        
+        if any(keyword in clean_name for keyword in ['idpharmacie', 'idpharmacy', 'idproduit', 'idproduct', 'idclient', 'idpatient']):
+            scores['code'] = 0.95  # ID = code, pas quantity
+            scores['quantity'] = 0.0  # Éviter confusion
+            return scores  # On retourne immédiatement, c'est un ID
+        
+        # RESTE DE LA FONCTION (déjà existant)
         
         # Fonction helper pour calculer le score d'une catégorie
         def calc_score(keywords, weight=1.0):
             score = 0.0
             for keyword in keywords:
-                if keyword in name:
-                    # Score plus élevé si correspondance exacte ou au début
-                    if name == keyword:
+                if keyword in clean_name:
+                    if name.lower().strip() == keyword:
                         score += 1.0 * weight
-                    elif name.startswith(keyword):
+                    elif clean_name.startswith(keyword):
                         score += 0.8 * weight
                     else:
                         score += 0.5 * weight
-            return min(score, 1.0)  # Plafond à 1.0
+            return min(score, 1.0)
         
         scores['product'] = calc_score(self.product_keywords)
         scores['code'] = calc_score(self.code_keywords)
