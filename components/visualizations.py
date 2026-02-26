@@ -100,23 +100,30 @@ class AutoVizGenerator:
     
     def _create_brand_chart(self) -> go.Figure:
         """
-        Crée un graphique de répartition par marque (Pie ou Bar).
+        Crée un graphique de répartition par marque avec bon contraste.
         """
-        brand_col = self.brand_cols[0]  # Prend la première colonne marque
+        brand_col = self.brand_cols[0]
         
         # Compte les occurrences par marque
-        brand_counts = self.df[brand_col].value_counts().head(10)  # Top 10
+        brand_counts = self.df[brand_col].value_counts().head(10)
         
-        # Choix du type de graphique selon le nombre de marques
+        # Couleurs distinctes et visibles
+        colors = px.colors.qualitative.Bold[:len(brand_counts)]
+        
         if len(brand_counts) <= 6:
             # Pie chart pour peu de catégories
             fig = px.pie(
                 values=brand_counts.values,
                 names=brand_counts.index,
                 title=f"📊 Répartition par {brand_col}",
-                color_discrete_sequence=px.colors.sequential.Blues_r
+                color_discrete_sequence=px.colors.qualitative.Bold
             )
-            fig.update_traces(textposition='inside', textinfo='percent+label')
+            fig.update_traces(
+                textposition='inside', 
+                textinfo='percent+label',
+                textfont=dict(size=14, color='white'),
+                marker=dict(line=dict(color='#1e293b', width=2))
+            )
         else:
             # Bar chart pour beaucoup de catégories
             fig = px.bar(
@@ -125,48 +132,93 @@ class AutoVizGenerator:
                 title=f"📊 Top 10 des {brand_col}",
                 labels={'x': brand_col, 'y': 'Nombre de produits'},
                 color=brand_counts.values,
-                color_continuous_scale='Blues'
+                color_continuous_scale='Blues',
+                text=brand_counts.values
+            )
+            
+            # Texte sur les barres
+            fig.update_traces(
+                textposition='outside',
+                textfont=dict(size=12, color='#1e293b'),
+                marker=dict(line=dict(color='#1e293b', width=1))
             )
         
         fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(size=12),
-            title_font_size=16,
-            title_font_color='#1e3a8a'
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(size=12, color='#1e293b'),
+            title_font_size=18,
+            title_font_color='#1e3a8a',
+            xaxis=dict(
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=12, color='#1e293b'),
+                showgrid=False
+            ),
+            yaxis=dict(
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=12, color='#1e293b'),
+                showgrid=True,
+                gridcolor='#e2e8f0'
+            ),
+            showlegend=False,
+            height=400
         )
         
         return fig
     
     def _create_category_chart(self) -> go.Figure:
         """
-        Crée un graphique de répartition par catégorie.
+        Crée un graphique de répartition par catégorie avec bon contraste.
         """
-        # Si plusieurs colonnes catégorie, on prend celle avec le meilleur score
         category_col = self.category_cols[0]
         
-        # Pour les catégories, on fait un treemap si imbriqué possible
         cat_counts = self.df[category_col].value_counts().head(15)
         
+        # Palette de couleurs distinctes
+        n_colors = len(cat_counts)
+        colors = px.colors.sample_colorscale(
+            'Viridis', 
+            [n/(n_colors-1) for n in range(n_colors)]
+        ) if n_colors > 1 else ['#3b82f6']
+        
         fig = px.bar(
-            y=cat_counts.index[::-1],  # Inversé pour meilleure lisibilité
+            y=cat_counts.index[::-1],
             x=cat_counts.values[::-1],
             orientation='h',
             title=f"📂 Répartition par {category_col}",
             labels={'y': category_col, 'x': 'Nombre de produits'},
             color=cat_counts.values[::-1],
-            color_continuous_scale='Greens',
+            color_continuous_scale='Viridis',
             text=cat_counts.values[::-1]
         )
         
-        fig.update_traces(textposition='outside')
+        fig.update_traces(
+            textposition='outside',
+            textfont=dict(size=12, color='#1e293b'),
+            marker=dict(line=dict(color='#1e293b', width=1))
+        )
+        
         fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            yaxis=dict(autorange="reversed"),
-            title_font_size=16,
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(size=12, color='#1e293b'),
+            title_font_size=18,
             title_font_color='#1e3a8a',
-            height=400 if len(cat_counts) > 8 else 300
+            xaxis=dict(
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=12, color='#1e293b'),
+                showgrid=True,
+                gridcolor='#e2e8f0'
+            ),
+            yaxis=dict(
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=12, color='#1e293b'),  # Texte des catégories en foncé !
+                showgrid=False,
+                autorange="reversed"
+            ),
+            showlegend=False,
+            height=500 if len(cat_counts) > 8 else 350,
+            margin=dict(l=200)  # Plus de marge pour les labels longs
         )
         
         return fig
@@ -199,15 +251,14 @@ class AutoVizGenerator:
     
     def _create_price_distribution(self) -> go.Figure:
         """
-        Crée un histogramme de distribution des prix.
+        Crée un histogramme de distribution des prix avec bon contraste.
         """
         price_col = self.price_cols[0]
         
-        # Utilisation de la fonction de nettoyage
+        # Nettoyage
         prices = self._clean_price_series(price_col).dropna()
         
         if len(prices) == 0:
-            # Fallback si conversion échoue
             fig = go.Figure()
             fig.add_annotation(
                 text="Impossible d'analyser les prix (format non numérique)",
@@ -218,7 +269,7 @@ class AutoVizGenerator:
         
         fig = px.histogram(
             prices,
-            nbins=20,
+            nbins=15,
             title=f"💰 Distribution des prix ({price_col})",
             labels={'value': 'Prix (€)', 'count': 'Nombre de produits'},
             color_discrete_sequence=['#3b82f6']
@@ -231,24 +282,54 @@ class AutoVizGenerator:
         fig.add_vline(
             x=mean_price, 
             line_dash="dash", 
-            line_color="red",
-            annotation_text=f"Moy: {mean_price:.2f}€"
+            line_color="#ef4444",
+            line_width=2,
+            annotation_text=f"Moy: {mean_price:.0f}€",
+            annotation_position="top",
+            annotation_font=dict(size=12, color="#ef4444")
         )
         
         fig.add_vline(
             x=median_price, 
             line_dash="dash", 
-            line_color="green",
-            annotation_text=f"Méd: {median_price:.2f}€"
+            line_color="#10b981",
+            line_width=2,
+            annotation_text=f"Méd: {median_price:.0f}€",
+            annotation_position="top",
+            annotation_font=dict(size=12, color="#10b981")
+        )
+        
+        fig.update_traces(
+            marker=dict(
+                color='#3b82f6',
+                line=dict(color='#1e40af', width=1.5)
+            )
         )
         
         fig.update_layout(
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            title_font_size=16,
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(size=12, color='#1e293b'),
+            title_font_size=18,
             title_font_color='#1e3a8a',
+            xaxis=dict(
+                title='Prix (€)',
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=12, color='#1e293b'),  # Prix en foncé
+                showgrid=True,
+                gridcolor='#e2e8f0',
+                tickformat=',.0f'
+            ),
+            yaxis=dict(
+                title='Nombre de produits',
+                title_font=dict(size=14, color='#334155'),
+                tickfont=dict(size=12, color='#1e293b'),
+                showgrid=True,
+                gridcolor='#e2e8f0'
+            ),
             showlegend=False,
-            bargap=0.1
+            bargap=0.1,
+            height=400
         )
         
         return fig
