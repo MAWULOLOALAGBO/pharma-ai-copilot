@@ -271,7 +271,7 @@ def render_header():
                 
                 📁 Uploadez n'importe quel fichier (Excel, CSV)  
                 🤖 L'IA analyse automatiquement la structure  
-                📊 Visualisations et insights auto-générés
+                📊 Visualisations et insights auto-générés  
                 📥 Export Excel Pro multi-onglets
             """)
         
