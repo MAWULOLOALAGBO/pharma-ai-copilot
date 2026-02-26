@@ -107,7 +107,7 @@ class AutoVizGenerator:
         # Compte les occurrences par marque
         brand_counts = self.df[brand_col].value_counts().head(10)
         
-        # Couleurs distinctes et visibles
+        # Couleurs distinctes sans dégradé (pour éviter la légende color)
         colors = px.colors.qualitative.Bold[:len(brand_counts)]
         
         if len(brand_counts) <= 6:
@@ -122,25 +122,30 @@ class AutoVizGenerator:
                 textposition='inside', 
                 textinfo='percent+label',
                 textfont=dict(size=14, color='white'),
-                marker=dict(line=dict(color='#1e293b', width=2))
+                marker=dict(line=dict(color='#1e293b', width=2)),
+                hovertemplate='<b>%{label}</b><br>Nombre: %{value}<br>Pourcentage: %{percent}<extra></extra>'
             )
         else:
-            # Bar chart pour beaucoup de catégories
-            fig = px.bar(
+            # Bar chart sans color scale (pour éviter la légende)
+            fig = go.Figure()
+            
+            fig.add_trace(go.Bar(
                 x=brand_counts.index,
                 y=brand_counts.values,
-                title=f"📊 Top 10 des {brand_col}",
-                labels={'x': brand_col, 'y': 'Nombre de produits'},
-                color=brand_counts.values,
-                color_continuous_scale='Blues',
-                text=brand_counts.values
-            )
-            
-            # Texte sur les barres
-            fig.update_traces(
+                marker=dict(
+                    color=colors,
+                    line=dict(color='#1e293b', width=1.5)
+                ),
+                text=brand_counts.values,
                 textposition='outside',
                 textfont=dict(size=12, color='#1e293b'),
-                marker=dict(line=dict(color='#1e293b', width=1))
+                hovertemplate='<b>%{x}</b><br>Nombre de produits: %{y}<extra></extra>'
+            ))
+            
+            fig.update_layout(
+                title=f"📊 Top 10 des {brand_col}",
+                xaxis_title=brand_col,
+                yaxis_title='Nombre de produits'
             )
         
         fig.update_layout(
@@ -158,10 +163,13 @@ class AutoVizGenerator:
                 title_font=dict(size=14, color='#334155'),
                 tickfont=dict(size=12, color='#1e293b'),
                 showgrid=True,
-                gridcolor='#e2e8f0'
+                gridcolor='#e2e8f0',
+                # Ajout de marge en haut pour éviter que le texte soit coupé
+                range=[0, max(brand_counts.values) * 1.15]
             ),
-            showlegend=False,
-            height=400
+            showlegend=False,  # Supprime la légende color
+            height=450,
+            margin=dict(t=80, b=50, l=50, r=50)  # Marges ajustées
         )
         
         return fig
