@@ -536,28 +536,58 @@ def render_analysis_screen(config):
             for insight in insights:
                 st.markdown(f"- {insight}")
             
-            # Section export (préparation pour v4.0)
+            # Section export (NOUVEAUTÉ V4.0 - Excel fonctionnel)
             st.divider()
             st.subheader("📤 Export des Résultats")
             
             col_exp1, col_exp2 = st.columns(2)
             
             with col_exp1:
-                st.markdown("""
-                    <div style='background-color: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6;'>
-                        <h4 style='color: #1e40af; margin-top: 0;'>📑 Export Excel Pro</h4>
-                        <p style='color: #334155;'>Rapport complet avec onglets, formules et mise en forme conditionnelle</p>
-                        <p style='color: #64748b; font-size: 0.9em;'><i>Disponible dans la version 4.0</i></p>
-                    </div>
-                """, unsafe_allow_html=True)
-                st.button("🔄 Générer Excel", disabled=True, help="Bientôt disponible", key="btn_excel")
+                if EXCEL_AVAILABLE:
+                    st.markdown("""
+                        <div style='background-color: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6;'>
+                            <h4 style='color: #1e40af; margin-top: 0;'>📑 Export Excel Pro</h4>
+                            <p style='color: #334155;'>Rapport complet avec 4 onglets : Résumé, Données, Alertes, Analyse</p>
+                            <p style='color: #64748b; font-size: 0.9em;'>Mise en forme conditionnelle • Formules • Graphiques</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button("📥 Générer Excel", key="btn_excel"):
+                        with st.spinner("Génération du rapport Excel en cours..."):
+                            try:
+                                # Génération du fichier Excel
+                                excel_file = generate_excel_report(df, schema)
+                                
+                                # Téléchargement
+                                st.download_button(
+                                    label="⬇️ Télécharger le rapport",
+                                    data=excel_file,
+                                    file_name=f"pharma_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    key="download_excel"
+                                )
+                                
+                                st.success("✅ Rapport Excel généré avec succès !")
+                                
+                            except Exception as e:
+                                st.error(f"❌ Erreur lors de la génération : {str(e)}")
+                                st.info("💡 Vérifiez que vos données sont correctement formatées.")
+                else:
+                    # Fallback si module non disponible
+                    st.markdown("""
+                        <div style='background-color: #fee2e2; padding: 20px; border-radius: 10px; border-left: 4px solid #ef4444;'>
+                            <h4 style='color: #991b1b; margin-top: 0;'>📑 Export Excel Pro</h4>
+                            <p style='color: #7f1d1d;'>Module d'export non disponible</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    st.button("🔄 Générer Excel", disabled=True, help="Module non chargé", key="btn_excel_disabled")
             
             with col_exp2:
                 st.markdown("""
-                    <div style='background-color: #dbeafe; padding: 20px; border-radius: 10px; border-left: 4px solid #3b82f6;'>
-                        <h4 style='color: #1e40af; margin-top: 0;'>📄 Export PDF</h4>
-                        <p style='color: #334155;'>Rapport PDF avec graphiques et insights</p>
-                        <p style='color: #64748b; font-size: 0.9em;'><i>Bientôt disponible</i></p>
+                    <div style='background-color: #e2e8f0; padding: 20px; border-radius: 10px; border-left: 4px solid #94a3b8;'>
+                        <h4 style='color: #475569; margin-top: 0;'>📄 Export PDF</h4>
+                        <p style='color: #64748b;'>Rapport PDF avec graphiques et insights</p>
+                        <p style='color: #94a3b8; font-size: 0.9em;'><i>Disponible dans une future version</i></p>
                     </div>
                 """, unsafe_allow_html=True)
                 st.button("🔄 Générer PDF", disabled=True, help="Bientôt disponible", key="btn_pdf")
