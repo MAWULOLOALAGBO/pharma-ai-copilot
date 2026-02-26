@@ -334,76 +334,63 @@ class AutoVizGenerator:
         max_val = int(quantities.max())
         min_val = int(quantities.min())
         
-        # Création de 4 cartes KPI au lieu de jauges (meilleur contraste)
-        fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=(
-                f'<b style="color:#1e40af;">Stock Total</b>',
-                f'<b style="color:#10b981;">Moyenne par Produit</b>',
-                f'<b style="color:#f59e0b;">Produit Max</b>',
-                f'<b style="color:#ef4444;">Produit Min</b>'
-            ),
-            vertical_spacing=0.3,
-            horizontal_spacing=0.2
-        )
+        # Création de la figure avec 4 indicateurs
+        fig = go.Figure()
         
-        # Stock Total (Bleu)
+        # On utilise une grille 2x2 avec des annotations pour les titres
         fig.add_trace(
             go.Indicator(
                 mode="number",
                 value=total,
+                title={"text": "<b style='color:#1e40af;'>Stock Total</b>", "font": {"size": 16}},
                 number={
                     'suffix': " unités", 
-                    'font': {'size': 50, 'color': '#1e40af', 'family': 'Arial Black'},
+                    'font': {'size': 40, 'color': '#1e40af'},
                     'valueformat': ',d'
                 },
-                domain={'row': 0, 'column': 0}
-            ),
-            row=1, col=1
+                domain={'x': [0, 0.5], 'y': [0.5, 1]}
+            )
         )
         
-        # Moyenne (Vert)
         fig.add_trace(
             go.Indicator(
                 mode="number",
                 value=avg,
+                title={"text": "<b style='color:#10b981;'>Moyenne par Produit</b>", "font": {"size": 16}},
                 number={
                     'suffix': " unités", 
-                    'font': {'size': 50, 'color': '#10b981', 'family': 'Arial Black'}
+                    'font': {'size': 40, 'color': '#10b981'}
                 },
-                domain={'row': 0, 'column': 1}
-            ),
-            row=1, col=2
+                domain={'x': [0.5, 1], 'y': [0.5, 1]}
+            )
         )
         
-        # Max (Orange)
         fig.add_trace(
             go.Indicator(
                 mode="number",
                 value=max_val,
+                title={"text": "<b style='color:#f59e0b;'>Produit Max</b>", "font": {"size": 16}},
                 number={
                     'suffix': " unités", 
-                    'font': {'size': 50, 'color': '#f59e0b', 'family': 'Arial Black'},
+                    'font': {'size': 40, 'color': '#f59e0b'},
                     'valueformat': ',d'
                 },
-                domain={'row': 1, 'column': 0}
-            ),
-            row=2, col=1
+                domain={'x': [0, 0.5], 'y': [0, 0.5]}
+            )
         )
         
-        # Min (Rouge)
         fig.add_trace(
             go.Indicator(
                 mode="number",
                 value=min_val,
+                title={"text": "<b style='color:#ef4444;'>Produit Min</b>", "font": {"size": 16}},
                 number={
                     'suffix': " unités", 
-                    'font': {'size': 50, 'color': '#ef4444', 'family': 'Arial Black'},
+                    'font': {'size': 40, 'color': '#ef4444'},
                     'valueformat': ',d'
                 },
-                domain={'row': 1, 'column': 1}
-            ),
-            row=2, col=2
+                domain={'x': [0.5, 1], 'y': [0, 0.5]}
+            )
         )
         
         fig.update_layout(
@@ -411,15 +398,8 @@ class AutoVizGenerator:
             title_font_size=20,
             title_font_color='#1e3a8a',
             paper_bgcolor='white',
-            plot_bgcolor='white',
             height=400,
-            margin=dict(t=100, b=50)
-        )
-        
-        # Mise à jour des annotations (titres des subplots)
-        fig.update_annotations(
-            font_size=16,
-            font_color='#334155'
+            margin=dict(t=80, b=20, l=20, r=20)
         )
         
         return fig
