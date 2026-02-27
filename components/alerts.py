@@ -59,12 +59,33 @@ class PharmaAlerts:
         return None
     
     def _find_quantity_column(self) -> str:
-        """Trouve la colonne de quantité en stock."""
-        for col, meta in self.schema.items():
-            if meta['detected_type'] == 'quantity':
-                if 'min' not in col.lower() and 'max' not in col.lower():
-                    return col
-        return None
+        """
+        Trouve la meilleure colonne de quantité en stock.
+        Priorité : stock_actuel > stock_physique > quantité > autres
+        """
+        if not self.quantity_cols:
+            return None
+        
+        # Priorité 1 : stock actuel/physique/réel
+        for col in self.quantity_cols:
+            clean = col.lower().replace('_', '').replace(' ', '')
+            if any(x in clean for x in ['actuel', 'physique', 'reel', 'real', 'courant', 'current']):
+                return col
+        
+        # Priorité 2 : stock sans min/max/seuil
+        for col in self.quantity_cols:
+            clean = col.lower().replace('_', '').replace(' ', '')
+            if 'stock' in clean and not any(x in clean for x in ['min', 'max', 'seuil', 'alerte', 'minimum', 'maximum', 'secu', 'securite']):
+                return col
+        
+        # Priorité 3 : quantité/qty/qte
+        for col in self.quantity_cols:
+            clean = col.lower().replace('_', '').replace(' ', '')
+            if any(x in clean for x in ['quantite', 'quantity', 'qty', 'qte']):
+                return col
+        
+        # Fallback
+        return self.quantity_cols[0]
     
     def _find_price_column(self) -> str:
         """Trouve la colonne de prix."""
