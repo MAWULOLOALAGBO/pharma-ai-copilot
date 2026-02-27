@@ -163,17 +163,39 @@ class PharmaAlerts:
         
         # Liste détaillée des produits critiques
         produits_critiques = []
-        if self.product_col:
+        if self.product_col and self.qty_col:
+            # Masque : produits non périmés mais à risque (< 60 jours)
             masque_critique = (jours_restant >= 0) & (jours_restant <= self.SEUIL_PEREMPTION_ATTENTION)
-            indices = self.df[masque_critique].index
+            df_critique = self.df[masque_critique].copy()
             
-            for idx in indices[:10]:  # Top 10
+            # Trier par jours restants (les plus urgents d'abord)
+            df_critique['__jours_restant'] = jours_restant[masque_critique]
+            df_critique = df_critique.sort_values('__jours_restant')
+            
+            for idx, row in df_critique.head(10).iterrows():
+                jours_restants_val = int(row['__jours_restant'])
+                
+                # Détermination de la priorité
+                if jours_restants_val <= self.SEUIL_PEREMPTION_URGENT:
+                    priorite = 'URGENT'
+                elif jours_restants_val <= self.SEUIL_PEREMPTION_ATTENTION:
+                    priorite = 'ATTENTION'
+                else:
+                    priorite = 'AVIS'
+                
+                # Récupération de la quantité (avec gestion d'erreur)
+                try:
+                    qty_val = pd.to_numeric(row[self.qty_col], errors='coerce')
+                    qty_display = int(qty_val) if not pd.isna(qty_val) else 'N/A'
+                except:
+                    qty_display = 'N/A'
+                
                 produits_critiques.append({
-                    'produit': self.df.loc[idx, self.product_col],
+                    'produit': row[self.product_col],
                     'date_peremption': dates.loc[idx].strftime('%d/%m/%Y') if pd.notna(dates.loc[idx]) else 'N/A',
-                    'jours_restant': int(jours_restant.loc[idx]),
-                    'quantite': self.df.loc[idx, self.qty_col] if self.qty_col else 'N/A',
-                    'priorite': 'URGENT' if jours_restant.loc[idx] <= self.SEUIL_PEREMPTION_URGENT else 'ATTENTION'
+                    'jours_restant': jours_restants_val,
+                    'quantite': qty_display,
+                    'priorite': priorite
                 })
         
         return {
