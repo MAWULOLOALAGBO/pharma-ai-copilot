@@ -94,6 +94,15 @@ except ImportError as e:
     st.error(f"Erreur d'import de l'export Excel: {e}")
     EXCEL_AVAILABLE = False
 
+
+# Import du module d'alertes pharmaceutiques (NOUVEAUTÉ V4.1)
+try:
+    from components.alerts import generate_pharma_alerts
+    ALERTS_AVAILABLE = True
+except ImportError as e:
+    st.error(f"Erreur d'import des alertes: {e}")
+    ALERTS_AVAILABLE = False
+
 # =============================================================================
 # SECTION 2 : CONFIGURATION GLOBALE DE L'APPLICATION
 # =============================================================================
@@ -537,6 +546,31 @@ def render_analysis_screen(config):
             for insight in insights:
                 st.markdown(f"- {insight}")
             
+            # ============================================================
+            # ALERTES PHARMACEUTIQUES (NOUVEAUTÉ V4.1)
+            # ============================================================
+            
+            if ALERTS_AVAILABLE:
+                st.divider()
+                st.subheader("🚨 Alertes Pharmaceutiques")
+                
+                with st.spinner("Analyse des alertes en cours..."):
+                    alerts = generate_pharma_alerts(df, schema)
+                
+                # Onglets pour chaque type d'alerte
+                alert_tabs = st.tabs(["📅 Péremption (FEFO)", "📦 Stock", "💰 Marges"])
+                
+                with alert_tabs[0]:
+                    _render_fefo_alerts(alerts.get('fefo', {}))
+                
+                with alert_tabs[1]:
+                    _render_stock_alerts(alerts.get('stock', {}))
+                
+                with alert_tabs[2]:
+                    _render_margin_alerts(alerts.get('marge', {}))
+            else:
+                st.info("Module d'alertes non disponible")
+            
             # Section export (NOUVEAUTÉ V4.0 - Excel fonctionnel)
             st.divider()
             st.subheader("📤 Export des Résultats")
@@ -607,6 +641,117 @@ def render_analysis_screen(config):
         st.subheader("📋 Aperçu brut des données")
         st.dataframe(df.head(), use_container_width=True)
 
+
+def _render_fefo_alerts(fefo_data: dict):
+    """
+    Affiche les alertes de péremption (FEFO).
+    """
+    if 'error' in fefo_data:
+        st.warning(fefo_data['error'])
+        return
+    
+    # KPIs en colonnes
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric("🔴 Périmés", fefo_data.get('perimes', 0), delta=None, delta_color="inverse")
+    with col2:
+        st.metric("🟠 < 30 jours", fefo_data.get('urgent_30j', 0), delta=None, delta_color="inverse")
+    with col3:
+        st.metric("🟡 30-60 jours", fefo_data.get('attention_60j', 0))
+    with col4:
+        st.metric("🔵 60-90 jours", fefo_data.get('avis_90j', 0))
+    with col5:
+        st.metric("✅ OK > 90j", fefo_data.get('ok', 0))
+    
+    # Valeur des pertes
+    valeur_pertes = fefo_data.get('valeur_pertes_estimee', 0)
+    if valeur_pertes > 0:
+        st.error(f"💸 Valeur des pertes estimée : **{valeur_pertes:,.2f} €**")
+    
+    # Produits prioritaires à écouler
+    produits = fefo_data.get('produits_prioritaires', [])
+    if produits:
+        st.subheader("📋 Produits à écouler en priorité")
+        
+        df_prioritaires = pd.DataFrame(produits)
+        st.dataframe(
+            df_prioritaires,
+            use_container_width=True,
+            column_config={
+                'priorite': st.column_config.TextColumn(
+                    "Priorité",
+                    help="URGENT = < 30 jours, ATTENTION = 30-60 jours"
+                ),
+                'jours_restant': st.column_config.NumberColumn(
+                    "Jours restants",
+                    format="%d jours"
+                )
+            }
+        )
+
+
+def _render_stock_alerts(stock_data: dict):
+    """
+    Affiche les alertes de stock.
+    """
+    if 'error' in stock_data:
+        st.warning(stock_data['error'])
+        return
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("🔴 Ruptures", stock_data.get('ruptures', 0), delta=None, delta_color="inverse")
+    with col2:
+        st.metric("🟠 Sous seuil", stock_data.get('sous_seuil', 0), delta=None, delta_color="inverse")
+    with col3:
+        st.metric("🔵 Surstock", stock_data.get('surstock', 0))
+    with col4:
+        st.metric("📊 Stock total", f"{stock_data.get('stock_total', 0):,}")
+    
+    # Graphique camembert
+    fig = go.Figure(data=[go.Pie(
+        labels=['Ruptures', 'Sous seuil', 'Stock OK', 'Surstock'],
+        values=[
+            stock_data.get('ruptures', 0),
+            stock_data.get('sous_seuil', 0),
+            stock_data.get('produits_dormants', 0),
+            stock_data.get('surstock', 0)
+        ],
+        marker_colors=['#EF4444', '#F59E0B', '#10B981', '#3B82F6'],
+        hole=0.4
+    )])
+    fig.update_layout(title="Répartition du stock", height=300)
+    st.plotly_chart(fig, use_container_width=True)
+
+# alerte
+def _render_margin_alerts(marge_data: dict):
+    """
+    Affiche les alertes de marges.
+    """
+    if 'error' in marge_data:
+        st.warning(marge_data['error'])
+        return
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        marge_moy = marge_data.get('marge_moyenne_pct', 0)
+        st.metric("📈 Marge moyenne", f"{marge_moy:.1f}%", 
+                 delta="Bonne" if marge_moy > 20 else "À surveiller")
+    with col2:
+        st.metric("💶 Marge brute totale", f"{marge_data.get('marge_brute_totale', 0):,.2f} €")
+    with col3:
+        st.metric("⚠️ Prix vente < achat", marge_data.get('prix_vente_trop_bas', 0), 
+                 delta=None, delta_color="inverse")
+    
+    # Détails des anomalies
+    if marge_data.get('prix_vente_trop_bas', 0) > 0:
+        st.error("🚨 Des produits sont vendus à perte ! Vérifiez immédiatement.")
+    
+    if marge_data.get('marge_faible', 0) > 0:
+        st.warning(f"⚠️ {marge_data.get('marge_faible')} produits ont une marge < 10%")
 
 # =============================================================================
 # SECTION 5 : POINT D'ENTRÉE PRINCIPAL (MAIN)
