@@ -34,17 +34,18 @@ class PharmaAlerts:
         self.df = df.copy()
         self.schema = schema
         
-        # EXTRAIRE les colonnes par type (comme dans visualizations.py)
+        # EXTRAIRE les colonnes par type (CORRECTION BUG)
         self.quantity_cols = [c for c, m in schema.items() if m['detected_type'] == 'quantity']
         self.price_cols = [c for c, m in schema.items() if m['detected_type'] == 'price']
         self.product_cols = [c for c, m in schema.items() if m['detected_type'] == 'product']
         self.date_cols = [c for c, m in schema.items() if m['detected_type'] == 'date']
+        self.brand_cols = [c for c, m in schema.items() if m['detected_type'] == 'brand']
+        self.category_cols = [c for c, m in schema.items() if m['detected_type'] == 'category']
+        self.code_cols = [c for c, m in schema.items() if m['detected_type'] == 'code']
         
         # Identification des colonnes clés
         self.date_peremption = self._find_date_column()
         self.qty_col = self._find_quantity_column()
-        self.price_col = self._find_price_column()
-        self.product_col = self._find_product_column()
         self.price_col = self._find_price_column()
         self.product_col = self._find_product_column()
         
@@ -56,10 +57,11 @@ class PharmaAlerts:
     
     def _find_date_column(self) -> str:
         """Trouve la colonne de date de péremption."""
-        for col in self.date_cols:  # Utilise self.date_cols maintenant défini
+        # Utilise self.date_cols maintenant défini
+        for col in self.date_cols:
             if any(x in col.lower() for x in ['peremption', 'expiration', 'dlc', 'dluo']):
                 return col
-        # Fallback
+        # Fallback sur première date trouvée
         return self.date_cols[0] if self.date_cols else None
     
     def _find_quantity_column(self) -> str:
@@ -93,17 +95,24 @@ class PharmaAlerts:
     
     def _find_price_column(self) -> str:
         """Trouve la colonne de prix."""
-        for col, meta in self.schema.items():
-            if meta['detected_type'] == 'price':
+        # Priorité : prix de vente TTC > prix d'achat
+        for col in self.price_cols:
+            if any(x in col.lower() for x in ['vente', 'pv', 'ttc', 'public']):
                 return col
-        return None
+        return self.price_cols[0] if self.price_cols else None
     
     def _find_product_column(self) -> str:
         """Trouve la colonne de nom de produit."""
-        for col, meta in self.schema.items():
-            if meta['detected_type'] == 'product':
+        # Priorité : designation > libelle > produit > nom
+        for col in self.product_cols:
+            clean = col.lower().replace('_', '')
+            if 'designation' in clean:
                 return col
-        return None
+        for col in self.product_cols:
+            clean = col.lower().replace('_', '')
+            if 'libelle' in clean or 'libellé' in clean:
+                return col
+        return self.product_cols[0] if self.product_cols else None
     
     def _parse_dates(self, series: pd.Series) -> pd.Series:
         """
@@ -126,6 +135,19 @@ class PharmaAlerts:
         
         # Si strings
         return pd.to_datetime(series, errors='coerce', dayfirst=True)
+    
+    def _clean_prices(self, series: pd.Series) -> pd.Series:
+        """
+        Nettoie une série de prix (supprime €, espaces, convertit virgules).
+        """
+        prices = series.astype(str)
+        prices = prices.str.replace('€', '', regex=False)
+        prices = prices.str.replace('EUR', '', regex=False, case=False)
+        prices = prices.str.replace(' ', '', regex=False)
+        prices = prices.str.replace('\xa0', '', regex=False)
+        prices = prices.str.replace(',', '.', regex=False)
+        prices = prices.str.strip()
+        return pd.to_numeric(prices, errors='coerce')
     
     def calculate_fefo_alerts(self) -> Dict[str, Any]:
         """
@@ -156,12 +178,12 @@ class PharmaAlerts:
         # Valeur des pertes (produits périmés)
         valeur_pertes = 0
         if self.price_col and perimes > 0:
-            prix = pd.to_numeric(self.df[self.price_col], errors='coerce')
+            prix = self._clean_prices(self.df[self.price_col])
             qte = pd.to_numeric(self.df[self.qty_col], errors='coerce') if self.qty_col else pd.Series([1] * len(self.df))
             masque_perime = jours_restant < 0
             valeur_pertes = (prix * qte * masque_perime).sum()
         
-        # Liste détaillée des produits critiques
+        # Liste détaillée des produits critiques (CORRECTION BUG)
         produits_critiques = []
         if self.product_col and self.qty_col:
             # Masque : produits non périmés mais à risque (< 60 jours)
@@ -173,140 +195,4 @@ class PharmaAlerts:
             df_critique = df_critique.sort_values('__jours_restant')
             
             for idx, row in df_critique.head(10).iterrows():
-                jours_restants_val = int(row['__jours_restant'])
-                
-                # Détermination de la priorité
-                if jours_restants_val <= self.SEUIL_PEREMPTION_URGENT:
-                    priorite = 'URGENT'
-                elif jours_restants_val <= self.SEUIL_PEREMPTION_ATTENTION:
-                    priorite = 'ATTENTION'
-                else:
-                    priorite = 'AVIS'
-                
-                # Récupération de la quantité (avec gestion d'erreur)
-                try:
-                    qty_val = pd.to_numeric(row[self.qty_col], errors='coerce')
-                    qty_display = int(qty_val) if not pd.isna(qty_val) else 'N/A'
-                except:
-                    qty_display = 'N/A'
-                
-                produits_critiques.append({
-                    'produit': row[self.product_col],
-                    'date_peremption': dates.loc[idx].strftime('%d/%m/%Y') if pd.notna(dates.loc[idx]) else 'N/A',
-                    'jours_restant': jours_restants_val,
-                    'quantite': qty_display,
-                    'priorite': priorite
-                })
-        
-        return {
-            'total_produits': len(self.df),
-            'perimes': int(perimes),
-            'urgent_30j': int(urgent),
-            'attention_60j': int(attention),
-            'avis_90j': int(avis),
-            'ok': int(ok),
-            'valeur_pertes_estimee': valeur_pertes,
-            'produits_prioritaires': produits_critiques,
-            'taux_rotation_risque': (perimes + urgent) / len(self.df) * 100 if len(self.df) > 0 else 0
-        }
-    
-    def calculate_stock_alerts(self) -> Dict[str, Any]:
-        """
-        Calcule les alertes de rupture et surstock.
-        """
-        if not self.qty_col:
-            return {'error': 'Aucune colonne de quantité détectée'}
-        
-        qty = pd.to_numeric(self.df[self.qty_col], errors='coerce')
-        
-        # Recherche d'une colonne stock_min
-        stock_min_col = None
-        for col in self.df.columns:
-            if 'min' in col.lower() and ('stock' in col.lower() or 'seuil' in col.lower()):
-                stock_min_col = col
-                break
-        
-        # Calcul des alertes
-        if stock_min_col:
-            stock_min = pd.to_numeric(self.df[stock_min_col], errors='coerce')
-            ruptures = (qty <= 0).sum()
-            sous_seuil = ((qty > 0) & (qty < stock_min)).sum()
-        else:
-            ruptures = (qty <= 0).sum()
-            sous_seuil = (qty <= 5).sum()  # Seuil par défaut
-        
-        # Surstock (quantité très élevée)
-        q75 = qty.quantile(0.75)
-        surstock = (qty > q75 * 3).sum()
-        
-        return {
-            'ruptures': int(ruptures),
-            'sous_seuil': int(sous_seuil),
-            'surstock': int(surstock),
-            'stock_total': int(qty.sum()),
-            'stock_moyen': float(qty.mean()),
-            'produits_dormants': int((qty > 0).sum() - ruptures - sous_seuil)  # Stock OK mais pas mouvementé
-        }
-    
-    def calculate_margin_alerts(self) -> Dict[str, Any]:
-        """
-        Calcule les alertes sur les marges et prix.
-        """
-        # Recherche des colonnes prix achat et prix vente
-        prix_achat_col = None
-        prix_vente_col = None
-        
-        for col, meta in self.schema.items():
-            if meta['detected_type'] == 'price':
-                if any(x in col.lower() for x in ['achat', 'pa', 'ht']):
-                    prix_achat_col = col
-                elif any(x in col.lower() for x in ['vente', 'pv', 'ttc', 'public']):
-                    prix_vente_col = col
-        
-        if not prix_achat_col or not prix_vente_col:
-            return {'error': 'Colonnes prix achat et/ou vente non détectées'}
-        
-        # Nettoyage des prix
-        pa = pd.to_numeric(self.df[prix_achat_col], errors='coerce')
-        pv = pd.to_numeric(self.df[prix_vente_col], errors='coerce')
-        
-        # Calcul de la marge
-        marge = ((pv - pa) / pa * 100).replace([np.inf, -np.inf], np.nan)
-        marge_brute = (pv - pa).sum()
-        
-        # Anomalies
-        prix_vente_trop_bas = (pv < pa).sum()  # Vente à perte
-        marge_negative = (marge < 0).sum()
-        marge_faible = ((marge >= 0) & (marge < 10)).sum()  # Marge < 10%
-        marge_elevee = (marge > 100).sum()  # Marge > 100%
-        
-        return {
-            'marge_moyenne_pct': float(marge.mean()),
-            'marge_brute_totale': float(marge_brute),
-            'prix_vente_trop_bas': int(prix_vente_trop_bas),
-            'marge_negative': int(marge_negative),
-            'marge_faible': int(marge_faible),
-            'marge_elevee': int(marge_elevee),
-            'prix_moyen_achat': float(pa.mean()),
-            'prix_moyen_vente': float(pv.mean())
-        }
-    
-    def get_all_alerts(self) -> Dict[str, Any]:
-        """
-        Retourne toutes les alertes consolidées.
-        """
-        return {
-            'fefo': self.calculate_fefo_alerts(),
-            'stock': self.calculate_stock_alerts(),
-            'marge': self.calculate_margin_alerts(),
-            'timestamp': datetime.now().isoformat()
-        }
-
-
-# Fonction utilitaire
-def generate_pharma_alerts(df: pd.DataFrame, schema: Dict) -> Dict[str, Any]:
-    """
-    Génère toutes les alertes pharmaceutiques rapidement.
-    """
-    alerts = PharmaAlerts(df, schema)
-    return alerts.get_all_alerts()
+                jours_restants_val =
