@@ -354,10 +354,11 @@ class ColumnDetector:
         # EXCLUSIONS : Mots qui empêchent une catégorie
         # ============================================================
         
-        # "nom_pharmacie" = brand (nom de la pharmacie), PAS product
-        if 'pharmacie' in clean_name and ('nom' in clean_name or 'name' in clean_name):
-            scores['brand'] = 0.9
-            scores['product'] = 0.0  # Empêcher confusion
+        # "nom_pharmacie", "id_pharmacie" = info pharmacie (ni product, ni brand)
+        if 'pharmacie' in clean_name:
+            scores['pharmacy'] = 0.95  # Nouveau type
+            scores['brand'] = 0.0
+            scores['product'] = 0.0
             return scores
         
         # "emplacement_rayon" = catégorie/emplacement, PAS product
@@ -488,6 +489,7 @@ class ColumnDetector:
             'code_ean': 'Code EAN',
             'id_produit': 'ID Produit',
             'id_pharmacie': 'ID Pharmacie',
+            'nom_pharmacie': 'Nom Pharmacie',
         }
         
         original_lower = original_name.lower().replace('_', '').replace(' ', '')
@@ -506,6 +508,7 @@ class ColumnDetector:
             'category': 'Catégorie',
             'brand': 'Marque/Fabricant',
             'url': 'URL',
+            'pharmacy': 'Pharmacie',
             'unknown': original_name
         }
         return mapping.get(detected_type, original_name)
