@@ -53,6 +53,34 @@ class AutoVizGenerator:
         self.date_cols = self._get_cols_by_type('date')
         self.category_cols = self._get_cols_by_type('category')
         self.brand_cols = self._get_cols_by_type('brand')
+
+    def _find_best_quantity_column(self) -> Optional[str]:
+        """
+        Trouve la meilleure colonne de quantité pour les indicateurs de stock.
+        """
+        if not self.quantity_cols:
+            return None
+        
+        # Priorité 1 : stock actuel/physique/réel
+        for col in self.quantity_cols:
+            clean = col.lower().replace('_', '').replace(' ', '')
+            if any(x in clean for x in ['actuel', 'physique', 'reel', 'real', 'courant', 'current']):
+                return col
+        
+        # Priorité 2 : stock sans min/max/seuil
+        for col in self.quantity_cols:
+            clean = col.lower().replace('_', '').replace(' ', '')
+            if 'stock' in clean and not any(x in clean for x in ['min', 'max', 'seuil', 'alerte', 'minimum', 'maximum', 'secu', 'securite']):
+                return col
+        
+        # Priorité 3 : quantité/qty/qte
+        for col in self.quantity_cols:
+            clean = col.lower().replace('_', '').replace(' ', '')
+            if any(x in clean for x in ['quantite', 'quantity', 'qty', 'qte']):
+                return col
+        
+        # Fallback
+        return self.quantity_cols[0]
     
     def _get_cols_by_type(self, detected_type: str) -> List[str]:
         """
@@ -461,10 +489,29 @@ class AutoVizGenerator:
         """
         Crée des indicateurs de stock avec meilleur contraste.
         """
-        quantity_col = self.quantity_cols[0]
+        # Utilisation de la meilleure colonne de quantité (intelligent)
+        quantity_col = self._find_best_quantity_column()
+        
+        if quantity_col is None:
+            fig = go.Figure()
+            fig.add_annotation(
+                text="Aucune colonne de quantité disponible",
+                xref="paper", yref="paper",
+                showarrow=False, font=dict(size=14, color="red")
+            )
+            return fig
         
         # Conversion en numérique
         quantities = pd.to_numeric(self.df[quantity_col], errors='coerce').dropna()
+        
+        if len(quantities) == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                text=f"Impossible d'analyser les quantités dans '{quantity_col}'",
+                xref="paper", yref="paper",
+                showarrow=False, font=dict(size=14, color="red")
+            )
+            return fig
         
         if len(quantities) == 0:
             fig = go.Figure()
