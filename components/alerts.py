@@ -34,9 +34,17 @@ class PharmaAlerts:
         self.df = df.copy()
         self.schema = schema
         
+        # EXTRAIRE les colonnes par type (comme dans visualizations.py)
+        self.quantity_cols = [c for c, m in schema.items() if m['detected_type'] == 'quantity']
+        self.price_cols = [c for c, m in schema.items() if m['detected_type'] == 'price']
+        self.product_cols = [c for c, m in schema.items() if m['detected_type'] == 'product']
+        self.date_cols = [c for c, m in schema.items() if m['detected_type'] == 'date']
+        
         # Identification des colonnes clés
         self.date_peremption = self._find_date_column()
         self.qty_col = self._find_quantity_column()
+        self.price_col = self._find_price_column()
+        self.product_col = self._find_product_column()
         self.price_col = self._find_price_column()
         self.product_col = self._find_product_column()
         
