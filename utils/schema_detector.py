@@ -94,12 +94,21 @@ class ColumnDetector:
             'therapeutique', 'thérapeutique', 'atc', 'classe thérapeutique'
         ]
         
-        # Mots-clés pour les marques/fournisseurs
+        # Mots-clés pour les marques/fournisseurs (UNIQUEMENT)
         self.brand_keywords = [
             'marque', 'brand', 'fournisseur', 'supplier', 'vendor', 'fabricant',
             'manufacturer', 'maker', 'producteur', 'producer', 'labo',
             'laboratoire', 'pharma', 'pharmaceutique', 'société', 'company',
-            'entreprise', 'enseigne', 'enseigne', 'siemens', 'kimo', 'wago', 'jumo'
+            'entreprise', 'siemens', 'kimo', 'wago', 'jumo',
+            'distributeur', 'grossiste', 'importateur', 'titulaire_amm'
+        ]
+
+        # Mots-clés pour les ÉTABLISSEMENTS (pharmacies, cliniques, etc.)
+        self.establishment_keywords = [
+            'pharmacie', 'pharmacy', 'officine', 'clinique', 'hopital', 'hospital',
+            'etablissement', 'establishment', 'structure', 'site', 'unite', 'centre',
+            'rs', 'raison_sociale', 'raisonsociale', 'denomination_sociale',
+            'enseigne', 'nom_etablissement', 'nom_site'
         ]
         
         # =================================================================
@@ -354,12 +363,23 @@ class ColumnDetector:
         # EXCLUSIONS : Mots qui empêchent une catégorie
         # ============================================================
         
-        # "nom_pharmacie", "id_pharmacie" = info pharmacie (ni product, ni brand)
-        if 'pharmacie' in clean_name:
-            scores['pharmacy'] = 0.95  # Nouveau type
-            scores['brand'] = 0.0
+        # ============================================================
+        # ÉTABLISSEMENTS (pharmacies, cliniques, etc.)
+        # ============================================================
+        if any(x in clean_name for x in ['pharmacie', 'rs', 'raison', 'finess', 'etablissement', 'site', 'unite', 'officine', 'clinique', 'hopital']):
+            scores['establishment'] = 0.95
+            scores['brand'] = 0.0  # Pas un fournisseur
+            scores['product'] = 0.0  # Pas un produit
+            return scores
+        
+        # ============================================================
+        # EMPLACEMENTS / RANGEMENT
+        # ============================================================
+        if 'emplacement' in clean_name or 'rayon' in clean_name:
+            scores['category'] = 0.9
             scores['product'] = 0.0
             return scores
+        
         
         # "emplacement_rayon" = catégorie/emplacement, PAS product
         if 'emplacement' in clean_name or 'rayon' in clean_name:
@@ -490,6 +510,8 @@ class ColumnDetector:
             'id_produit': 'ID Produit',
             'id_pharmacie': 'ID Pharmacie',
             'nom_pharmacie': 'Nom Pharmacie',
+            'rs': 'Raison Sociale',
+            'finess': 'FINESS',
         }
         
         original_lower = original_name.lower().replace('_', '').replace(' ', '')
@@ -509,6 +531,7 @@ class ColumnDetector:
             'brand': 'Marque/Fabricant',
             'url': 'URL',
             'pharmacy': 'Pharmacie',
+            'establishment': 'Établissement',
             'unknown': original_name
         }
         return mapping.get(detected_type, original_name)
