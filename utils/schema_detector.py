@@ -129,6 +129,64 @@ class ColumnDetector:
         
         # Pattern pour URLs
         self.url_pattern = re.compile(r'^https?://')
+
+    def _detect_date_format(self, col_data: pd.Series):
+        """
+        Détecte si une colonne contient des dates Excel ou standard.
+        
+        Returns:
+            (est_date, type_technique)
+        """
+        # Échantillon de valeurs non nulles
+        sample = col_data.dropna().head(20)
+        
+        if len(sample) == 0:
+            return False, 'unknown'
+        
+        # Test 1 : Déjà des datetime pandas
+        if pd.api.types.is_datetime64_any_dtype(col_data):
+            return True, 'date'
+        
+        # Test 2 : Chaînes au format date standard
+        date_patterns = [
+            r'^\d{2}/\d{2}/\d{4}$',      # DD/MM/YYYY
+            r'^\d{4}-\d{2}-\d{2}$',      # YYYY-MM-DD
+            r'^\d{2}-\d{2}-\d{4}$',      # DD-MM-YYYY
+        ]
+        
+        for pattern in date_patterns:
+            matches = sample.astype(str).str.match(pattern).sum()
+            if matches / len(sample) > 0.8:
+                return True, 'date_string'
+        
+        # Test 3 : NOMBRES qui pourraient être des dates Excel
+        # Excel : 1 = 01/01/1900, 44561 = 01/01/2022
+        try:
+            numeric_sample = pd.to_numeric(sample, errors='coerce').dropna()
+            if len(numeric_sample) > 0:
+                min_val = numeric_sample.min()
+                max_val = numeric_sample.max()
+                
+                # Plage plausible pour des dates pharma (2020-2050)
+                # Excel: 43831 = 01/01/2020, 54789 = 31/12/2049
+                if 40000 <= min_val and max_val <= 60000:
+                    return True, 'date_excel'
+        except:
+            pass
+        
+        return False, 'unknown'
+    
+    def _convert_excel_date(self, value):
+        """
+        Convertit un nombre Excel en date Python.
+        """
+        try:
+            from datetime import datetime, timedelta
+            excel_epoch = datetime(1899, 12, 30)
+            days = int(float(value))
+            return excel_epoch + timedelta(days=days)
+        except:
+            return None
     
     # =========================================================================
     # MÉTHODES PUBLIQUES PRINCIPALES
@@ -200,6 +258,33 @@ class ColumnDetector:
         """
         # Nettoyage du nom de colonne pour analyse
         clean_name = col_name.lower().strip()
+
+        # ============================================================
+        # DÉTECTION PRIORITAIRE : Dates (Excel ou standard)
+        # ============================================================
+        is_date, date_type = self._detect_date_format(col_data)
+        
+        if is_date:
+            # Conversion des valeurs d'exemple
+            sample_values = []
+            for val in col_data.dropna().head(3):
+                if date_type == 'date_excel':
+                    converted = self._convert_excel_date(val)
+                    sample_values.append(converted.strftime('%d/%m/%Y') if converted else str(val))
+                else:
+                    sample_values.append(str(val)[:20])
+            
+            return {
+                'detected_type': 'date',
+                'technical_type': date_type,
+                'confidence': 0.95,
+                'suggested_name': 'Date',
+                'sample_values': sample_values,
+                'null_count': int(col_data.isna().sum()),
+                'unique_count': int(col_data.nunique()),
+                'all_scores': {'date': 0.95}
+            }
+        # ============================================================
         
         # 1. Analyse du nom de colonne (score basé sur mots-clés)
         name_score = self._score_column_name(clean_name)
@@ -262,6 +347,30 @@ class ColumnDetector:
         if 'designation' in clean_name:
             scores['product'] = 1.0
             scores['brand'] = 0.0  # Éviter confusion avec brand
+            return scores
+
+
+        # ============================================================
+        # EXCLUSIONS : Mots qui empêchent une catégorie
+        # ============================================================
+        
+        # "nom_pharmacie" = brand (nom de la pharmacie), PAS product
+        if 'pharmacie' in clean_name and ('nom' in clean_name or 'name' in clean_name):
+            scores['brand'] = 0.9
+            scores['product'] = 0.0  # Empêcher confusion
+            return scores
+        
+        # "emplacement_rayon" = catégorie/emplacement, PAS product
+        if 'emplacement' in clean_name or 'rayon' in clean_name:
+            scores['category'] = 0.9
+            scores['product'] = 0.0
+            return scores
+        
+        # "adresse", "ville", "code_postal" = info géo, PAS product/brand
+        if any(x in clean_name for x in ['adresse', 'ville', 'codepostal', 'cp', 'telephone', 'tel', 'email']):
+            scores['unknown'] = 0.8  # On ne sait pas, mais ce n'est PAS product
+            scores['product'] = 0.0
+            scores['brand'] = 0.0
             return scores
         
         # Fonction helper pour calculer le score d'une catégorie
