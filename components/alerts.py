@@ -56,15 +56,11 @@ class PharmaAlerts:
     
     def _find_date_column(self) -> str:
         """Trouve la colonne de date de péremption."""
-        for col, meta in self.schema.items():
-            if meta['detected_type'] == 'date':
-                if any(x in col.lower() for x in ['peremption', 'expiration', 'dlc', 'dluo']):
-                    return col
-        # Fallback sur première date trouvée
-        for col, meta in self.schema.items():
-            if meta['detected_type'] == 'date':
+        for col in self.date_cols:  # Utilise self.date_cols maintenant défini
+            if any(x in col.lower() for x in ['peremption', 'expiration', 'dlc', 'dluo']):
                 return col
-        return None
+        # Fallback
+        return self.date_cols[0] if self.date_cols else None
     
     def _find_quantity_column(self) -> str:
         """
