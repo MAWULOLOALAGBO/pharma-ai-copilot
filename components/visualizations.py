@@ -720,9 +720,10 @@ class AutoVizGenerator:
                 kpis['prix_moyen'] = prices_clean.mean()
                 kpis['prix_total'] = prices_clean.sum()
         
-        # Quantité totale
-        if self.quantity_cols:
-            quantities = pd.to_numeric(self.df[self.quantity_cols[0]], errors='coerce')
+        # Quantité totale (utilisation de la meilleure colonne)
+        quantity_col = self._find_best_quantity_column()
+        if quantity_col:
+            quantities = pd.to_numeric(self.df[quantity_col], errors='coerce')
             kpis['stock_total'] = quantities.sum()
         
         return kpis
